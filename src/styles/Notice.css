@@ -1,0 +1,372 @@
+/* 공지사항 목록 스타일 */
+.notice-board {
+  width: 100%;
+  max-width: 1250px;
+  margin: 30px auto;
+}
+
+.notice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+
+.notice-table th,
+.notice-table td {
+  padding: 0.75em;
+  border-bottom: 2px solid black;
+}
+
+.notice-table th {
+  font-weight: 700;
+  font-size: 1.05em;
+}
+
+/* 중요 공지사항 스타일 */
+.notice-table tr.important-row {
+  background-color: #ededed;
+}
+
+.notice-title {
+  text-align: left;
+  cursor: pointer;
+  max-width: 500px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  font-size: 1.5em;
+  word-break: keep-all;
+}
+
+.notice-title:hover {
+  text-decoration: underline;
+}
+
+.important-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-right: 8px;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.notice-date,
+.notice-views {
+  text-align: center;
+  width: 15%;
+  min-width: 130px;
+  font-size: 1.1em;
+}
+
+.notice-date {
+  width: 15%;
+  min-width: 130px;
+}
+
+.notice-views {
+  width: 10%;
+  min-width: 100px;
+}
+
+/* 공지사항 상세 페이지 스타일 */
+.notice-detail-container {
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 40px 20px 20px 20px;
+}
+
+.notice-detail-container h2 {
+  border-bottom: 2px solid black;
+  font-size: 1.8em;
+  padding-bottom: 0.5em;
+}
+
+.notice-meta {
+  display: flex;
+  gap: 20px;
+  font-size: 1.05em;
+  color: black;
+  margin-bottom: 50px;
+  padding: 20px 0;
+  border-bottom: 2px solid black;
+  font-weight: 500;
+}
+
+.notice-meta p {
+  margin-right: 50px;
+}
+
+.notice-meta span {
+  font-weight: 700;
+  margin-right: 20px;
+}
+
+.notice-content {
+  font-size: 16px;
+  color: black;
+  border-bottom: 2px solid black;
+}
+
+.notice-content p {
+  line-height: 1.8;
+}
+
+/* 리치텍스트 정렬 스타일 */
+.notice-content .ql-align-center {
+  text-align: center;
+}
+
+.notice-content .ql-align-right {
+  text-align: right;
+}
+
+.notice-content .ql-align-justify {
+  text-align: justify;
+}
+
+.notice-content p {
+  word-break: keep-all;
+}
+
+.notice-content img {
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0;
+}
+
+.notice-files {
+  padding: 20px 0 17px 0;
+  border-bottom: 2px solid black;
+}
+
+.notice-files h3 {
+  font-size: 1.05em;
+  color: black;
+  margin-bottom: 12px;
+}
+
+.notice-files ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notice-files li {
+  margin-bottom: 8px;
+  font-size: 1em;
+}
+
+.file-download-button {
+  color: black;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1.05em;
+  text-decoration: underline;
+  background: none;
+}
+
+.file-download-button:hover {
+  color: #0056b3;
+}
+
+.back-button {
+  display: block;
+  margin-left: auto;
+  padding: 12px 20px;
+  background-color: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 1.05em;
+  font-weight: 600;
+  margin-top: 30px;
+  border-radius: 0px;
+  margin-bottom: 30px;
+}
+
+.back-button:hover {
+  background-color: #5a6268;
+}
+
+/* 페이지네이션 스타일 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 30px;
+}
+
+.pagination button {
+  color: black;
+  cursor: pointer;
+  min-width: 30px;
+  transition: all 0.2s ease;
+  background: none;
+  font-size: 1.05em;
+  opacity: 0.4;
+  padding: 10px 15px;
+}
+
+.pagination button:hover {
+  background: none;
+  opacity: 1;
+}
+
+.pagination button.active {
+  color: black;
+  background: none;
+  font-weight: 800;
+  opacity: 1;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ql-editor {
+  padding: 0 0 50px 0 !important;
+}
+
+@media (max-width: 1024px) {
+  .notice-board,
+  .notice-table {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 30px 0;
+    padding: 0 15px;
+  }
+  .notice-table {
+    border: none;
+    background: none;
+    border-top: 2px solid black;
+    table-layout: fixed;
+  }
+
+  .notice-table thead {
+    display: none;
+  }
+  .notice-table tr.important-row {
+    background: #f2f2f2;
+  }
+  .notice-table tr,
+  .notice-table tr.important-row {
+    display: block;
+    padding: 15px 10px;
+    margin: 0;
+    border-bottom: 2px solid #222;
+    box-shadow: none;
+  }
+  .notice-table td,
+  .notice-table th {
+    display: block;
+    border: none;
+    padding: 0;
+    background: none;
+  }
+  .notice-title {
+    font-size: 1.05em;
+    font-weight: 700;
+    background: none;
+    margin-bottom: 5px;
+    border: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+  }
+  .notice-table > tbody > tr > .notice-date,
+  .notice-table > tbody > tr > .notice-views {
+    display: none !important;
+  }
+
+  .notice-meta {
+    display: block;
+    font-size: 0.98em;
+    color: black;
+    margin-bottom: 20px;
+    padding: 15px 5px;
+    font-weight: 400;
+  }
+
+  .notice-meta p {
+    margin-right: 0;
+  }
+
+  .notice-meta span {
+    margin-right: 10px;
+  }
+  .notice-meta-cell {
+    display: table-cell !important;
+    color: #888;
+    font-size: 0.85em;
+    font-weight: 400;
+    text-align: left;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .notice-meta-cell .notice-date,
+  .notice-meta-cell .notice-views {
+    display: inline !important;
+  }
+  .notice-meta-cell .notice-sep {
+    margin: 0 4px;
+  }
+  .notice-detail-container {
+    padding: 25px 15px 40px 15px;
+  }
+  .notice-detail-container h2 {
+    font-size: 1.3em;
+    padding-bottom: 20px;
+    text-align: center;
+  }
+  .notice-content {
+    font-size: 0.98em;
+    margin-bottom: 30px;
+    padding: 10px 5px;
+  }
+  .notice-content p {
+    line-height: 1.6;
+  }
+  .notice-files {
+    padding: 17px 5px 15px 5px;
+    font-size: 0.98em;
+  }
+  .notice-files h3 {
+    font-size: 1em;
+    margin-bottom: 8px;
+  }
+  .back-button {
+    padding: 10px 12px;
+    font-size: 0.98em;
+    margin-top: 20px;
+    margin-bottom: 15px;
+  }
+
+  .ql-editor {
+    padding: 10px 5px 50px 5px !important;
+    margin-bottom: 0px;
+  }
+  .pagination button {
+    min-width: 20px;
+    font-size: 0.98em;
+    padding: 0 10px;
+  }
+}
+@media (min-width: 1025px) {
+  .notice-meta-cell {
+    display: none !important;
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}

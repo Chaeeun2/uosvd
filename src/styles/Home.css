@@ -1,0 +1,134 @@
+/* src/styles/Home.css */
+.layout-container {
+  display: flex;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding-top: 45px;
+}
+
+.main-content {
+  flex: 1;
+  padding: 1.5em 2.2em;
+  margin-left: 240px; /* 사이드 메뉴 너비만큼 여백 추가 */
+  width: calc(100% - 240px);
+  position: relative;
+}
+
+.hero-text h1 {
+  font-size: 9em;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-weight: 400;
+  margin: 10px 20px;
+}
+
+@media (max-width: 1150px) {
+  .hero-text h1 {
+    font-size: 7em;
+  }
+}
+
+.info-container {
+  position: absolute;
+  bottom: 1.5em;
+  left: 2.2em;
+}
+
+.school-info {
+  margin-bottom: 2em;
+}
+
+.contact-info,
+.school-info {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+.contact-info h2,
+.school-info h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.top-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 45px;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  align-items: center;
+  font-size: 0.9rem;
+  z-index: 1000;
+  border-bottom: 2px solid black;
+}
+
+.top-header p,
+.top-header a {
+  font-size: 1.7em;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1;
+  color: black;
+}
+
+.typing-cursor {
+  display: inline-block;
+  margin-left: 10px;
+  width: 2px;
+  height: 0.7em;
+  background-color: #000;
+  animation: blink 1s infinite;
+  vertical-align: baseline;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .layout-container {
+    min-height: auto;
+  }
+
+  .hero-text h1 {
+    font-size: 4.5em;
+    margin: 0;
+    padding: 0.3em;
+  }
+
+  .info-container {
+    position: fixed;
+    bottom: 1.5em;
+    left: 1.5em;
+  }
+
+  .school-info {
+    margin-bottom: 2em;
+  }
+
+  .contact-info,
+  .school-info {
+    font-size: 1.1em;
+    letter-spacing: -0.02em;
+    font-weight: 500;
+  }
+
+  .contact-info h2,
+  .school-info h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}

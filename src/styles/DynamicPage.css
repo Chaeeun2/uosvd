@@ -1,0 +1,114 @@
+@import "./common.css";
+
+.main-content {
+  padding: 1em;
+}
+
+.dynamic-page {
+  width: 100%;
+}
+
+.page-title {
+  font-size: 2.5em;
+  font-weight: 700;
+  padding-left: 8px;
+  border-bottom: 2px solid black;
+  padding-bottom: 15px;
+}
+
+.content-item {
+  display: flex;
+  border-bottom: 2px solid black;
+  padding-bottom: 15px;
+  padding-top: 15px;
+}
+
+.content-item h2 {
+  font-size: 1.05em;
+  font-weight: 700;
+  flex: 1;
+  border-right: 2px solid black;
+  min-width: 170px;
+  word-break: keep-all;
+  padding-left: 10px;
+}
+
+.content-item .content-text {
+  padding: 0 20px 50px 20px;
+}
+
+.content-item div {
+  font-size: 1.05em;
+  flex: 5;
+  font-weight: 500;
+  word-break: keep-all;
+}
+
+/* 리치텍스트 콘텐츠 스타일링 */
+.content-item img {
+  max-width: 50%;
+  height: auto;
+  margin-bottom: 5px;
+}
+
+.content-item ul,
+.content-item ol {
+  margin-left: 20px;
+  margin-bottom: 20px;
+}
+
+.content-item p {
+  line-height: 1.6;
+}
+
+.content-item a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.content-item a:hover {
+  text-decoration: underline;
+}
+
+.no-content {
+  font-size: 1.05em;
+  font-weight: 500;
+  padding-left: 10px;
+  padding-top: 20px;
+}
+
+@media (max-width: 1024px) {
+  .content-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0px 15px;
+    border-bottom: none;
+  }
+  .content-item h2 {
+    border-right: none;
+    border-bottom: 2px solid black;
+    padding: 10px 0;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .content-item div {
+    padding-left: 0;
+    font-weight: 400;
+  }
+
+  .content-item .content-text {
+    border-bottom: 2px solid black;
+    padding: 5px 5px 60px 5px;
+    font-size: 0.9em;
+    line-height: 1.7;
+  }
+  .content-item img {
+    max-width: 100%;
+  }
+
+  .no-content {
+    font-size: 0.98em;
+    padding: 10px 20px;
+  }
+}

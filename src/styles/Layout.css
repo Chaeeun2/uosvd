@@ -1,0 +1,213 @@
+@import "./common.css";
+
+/* src/styles/Layout.css */
+.top-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 45px;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  align-items: center;
+  font-size: 0.9rem;
+  z-index: 1000;
+  border-bottom: 2px solid black;
+  background-color: white;
+}
+
+.top-header a {
+  font-size: 1.7em;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1;
+  color: black;
+  text-decoration: none;
+}
+
+.layout-container {
+  display: flex;
+  min-height: 100vh;
+  padding-top: 45px; /* 헤더 높이만큼 패딩 추가 */
+}
+
+.side-menu {
+  width: 240px;
+  left: 0;
+  right: auto;
+  border-right: 2px solid black;
+  border-left: none;
+  position: fixed;
+  top: 45px;
+  height: 100%;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  background-color: white;
+}
+
+.menu-category {
+  padding-bottom: 10px;
+  margin: 4px 10px 0px 10px;
+  border-bottom: 2px solid black;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.menu-category h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 5px;
+}
+
+.submenu-item {
+  font-size: 1.05rem;
+  padding: 1px 5px;
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+  text-align: right;
+  color: inherit;
+  color: black;
+  font-weight: 600;
+}
+
+.submenu-item:hover {
+  text-decoration: underline;
+  color: black;
+}
+
+.submenu-item.active {
+  background-color: black;
+  color: white;
+  padding-left: 10px;
+}
+
+.submenu-item.active:hover {
+  color: white;
+}
+
+.main-content {
+  flex: 1;
+  padding: 1.5em 2.2em;
+  margin-left: 240px; /* 사이드 메뉴 너비만큼 여백 추가 */
+  width: calc(100% - 240px);
+}
+
+.page-container {
+  display: flex;
+  min-height: 100vh;
+  padding-top: 45px;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+}
+
+.page-content {
+  max-width: 800px;
+}
+
+.page-content h1 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+/* 메뉴 아이템 */
+.menu-item {
+  display: block;
+  padding: 12px 20px;
+  color: #333;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.2s;
+  border-radius: 4px;
+}
+
+.menu-item:hover {
+  background-color: #f0f0f0;
+}
+
+.menu-item.active {
+  background-color: #007bff;
+  color: white;
+}
+
+@media (max-width: 1024px) {
+  .side-menu {
+    transform: translateX(100%);
+    z-index: 2000;
+    left: auto;
+    right: 0;
+    border-left: 2px solid black;
+    border-right: none;
+    width: 70vw;
+    background: white;
+    height: 100%;
+    padding-bottom: 60px;
+  }
+  .side-menu.open {
+    transform: translateX(0);
+  }
+  .side-menu.closed {
+    transform: translateX(100%);
+  }
+  .hamburger-button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+  }
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .top-header p {
+    display: none;
+  }
+  .menu-category h2 {
+    font-size: 1.1rem;
+  }
+  .submenu-item {
+    font-size: 0.95rem;
+  }
+
+  .main-content {
+    padding: 0;
+    margin-bottom: 15px;
+  }
+}
+
+.hamburger-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: auto;
+  margin: 0 0 0 10px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2100;
+}
+.hamburger-bar {
+  width: 24px;
+  height: 2px;
+  background: #222;
+  margin: 2.8px 0;
+  transition: all 0.3s ease;
+  display: block;
+}
+.hamburger-button.open .hamburger-bar:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+.hamburger-button.open .hamburger-bar:nth-child(2) {
+  opacity: 0;
+}
+.hamburger-button.open .hamburger-bar:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
