@@ -54,8 +54,7 @@ export default function Dashboard() {
       const { data: todayVisit, error: todayVisitError } = await supabase
         .from('visits')
         .select('count')
-        .eq('visit_date', today)
-        .single();
+        .eq('visit_date', today);
       
       if (todayVisitError && todayVisitError.code !== 'PGRST116') throw todayVisitError;
 
