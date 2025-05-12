@@ -51,12 +51,12 @@ export default function Dashboard() {
         .toISOString().split('T')[0];
 
       // 오늘 방문자 수
-      const { data: todayVisit, error: todayVisitError } = await supabase
+      const { count: todayVisits, error: todayVisitError } = await supabase
         .from('visits')
-        .select('count')
+        .select('*', { count: 'exact', head: true })
         .eq('visit_date', today);
       
-      if (todayVisitError && todayVisitError.code !== 'PGRST116') throw todayVisitError;
+      if (todayVisitError) throw todayVisitError;
 
       // 이번달 방문자 수
       const { data: monthlyVisits, error: monthlyVisitsError } = await supabase
@@ -73,7 +73,7 @@ export default function Dashboard() {
         menuCount,
         contentCount,
         noticeCount,
-        todayVisits: todayVisit?.count || 0,
+        todayVisits: todayVisits || 0,
         monthlyVisits: monthlyVisitCount
       });
     } catch (error) {
