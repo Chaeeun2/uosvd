@@ -580,6 +580,17 @@ select.admin-input,
   flex: 10;
 }
 
+.admin-image-preview {
+  width: 150px;
+  margin-top: 10px;
+}
+
+.admin-image-preview img {
+  border: 1px solid #d8d8d8;
+  margin-bottom: 5px;
+  width: 100%;
+}
+
 .admin-login button {
   width: 100%;
   padding: 14px;

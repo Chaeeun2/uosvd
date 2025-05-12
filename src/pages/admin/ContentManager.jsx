@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import Modal from '../../components/Modal';
 import AdminLayout from '../../components/AdminLayout';
 import '../../styles/admin.css';
+import { v4 as uuidv4 } from 'uuid';
 
 const ContentManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,6 +112,17 @@ const ContentManager = () => {
     if (!window.confirm(confirmMessage)) return;
 
     try {
+      // 1. storage 이미지 삭제 (image_url이 있을 때만)
+      if (contentToDelete.image_url) {
+        // 예: https://xxxx.supabase.co/storage/v1/object/public/content-images/파일명
+        const matches = contentToDelete.image_url.match(/public\/([^/]+)\/(.+)$/);
+        if (matches) {
+          const bucket = matches[1];
+          const path = matches[2];
+          await supabase.storage.from(bucket).remove([path]);
+        }
+      }
+      // 2. DB에서 콘텐츠 삭제
       const { error } = await supabase
         .from('contents')
         .delete()
@@ -165,15 +177,21 @@ const ContentManager = () => {
         throw new Error(`이미지 크기는 5MB 이하여야 합니다. 현재 크기: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
       }
 
+      // 확장자 체크
+      const allowedExts = ['gif', 'jpg', 'jpeg', 'png', 'webp'];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!allowedExts.includes(ext)) {
+        throw new Error('허용된 이미지 확장자가 아닙니다. (gif, jpg, jpeg, png, webp만 가능)');
+      }
+
       // 허용된 이미지 타입
       const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
       if (!ALLOWED_TYPES.includes(file.type)) {
-        throw new Error('허용된 이미지 형식이 아닙니다. (jpeg, png, gif, webp 파일만 업로드 가능)');
+        throw new Error('허용된 이미지 형식이 아닙니다. (gif, jpg, jpeg, png, webp 파일만 업로드 가능)');
       }
 
-      // 파일 이름에서 특수문자 제거 및 영문/숫자만 허용
-      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '');
-      const fileName = `${Date.now()}-${cleanFileName}`;
+      // uuid로 파일명 생성
+      const fileName = `${uuidv4()}.${ext}`;
 
       // 파일 업로드
       const { data, error: uploadError } = await supabase.storage
@@ -487,14 +505,23 @@ const ContentManager = () => {
                   }}
                   className="admin-input"
                 />
-                <small className="file-restrictions">
+                <small className="admin-editor-guide">
                   * 허용 형식: JPG, PNG, GIF, WEBP (최대 5MB)
                 </small>
                 {imageUrl && (
                   <div className="admin-image-preview">
                     <img src={imageUrl} alt="미리보기" />
                     <button 
-                      onClick={() => setImageUrl('')}
+                      onClick={async () => {
+                        // storage에서 이미지 삭제
+                        const matches = imageUrl.match(/public\/([^/]+)\/(.+)$/);
+                        if (matches) {
+                          const bucket = matches[1];
+                          const path = matches[2];
+                          await supabase.storage.from(bucket).remove([path]);
+                        }
+                        setImageUrl('');
+                      }}
                       className="admin-button"
                     >
                       이미지 제거

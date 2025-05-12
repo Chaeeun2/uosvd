@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import AdminLayout from '../../components/AdminLayout';
 import Modal from '../../components/Modal';
 import '../../styles/admin.css';
+import { v4 as uuidv4 } from 'uuid';
 
 const NoticeManager = () => {
   const [notices, setNotices] = useState([]);
@@ -111,11 +112,18 @@ const NoticeManager = () => {
           continue;
         }
 
+        // 확장자 체크
+        const allowedExts = ['gif', 'jpg', 'jpeg', 'png', 'webp', 'pdf', 'hwp', 'docx', 'doc', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'];
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!allowedExts.includes(ext)) {
+          alert(`${file.name}: 허용된 파일 형식이 아닙니다. (이미지: gif, jpg, jpeg, png, webp / 문서: pdf, hwp, docx, doc, xls, xlsx, ppt, pptx, txt)`);
+          continue;
+        }
+
         // 파일 이름에서 확장자 추출
         const fileExt = file.name.split('.').pop();
-        // 타임스탬프와 랜덤 문자열로 고유한 파일 이름 생성
-        const randomString = Math.random().toString(36).substring(2, 15);
-        const fileName = `${Date.now()}_${randomString}.${fileExt}`;
+        // uuid로 고유한 파일 이름 생성
+        const fileName = `${uuidv4()}.${fileExt}`;
         
         console.log('업로드할 파일 이름:', fileName);
 
@@ -211,6 +219,22 @@ const NoticeManager = () => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
+      // 1. 삭제하려는 공지의 첨부파일 정보 가져오기
+      const noticeToDelete = notices.find(notice => notice.id === id);
+      if (noticeToDelete && Array.isArray(noticeToDelete.files)) {
+        for (const file of noticeToDelete.files) {
+          if (file.url) {
+            // 예: https://xxxx.supabase.co/storage/v1/object/public/notice-files/파일명
+            const matches = file.url.match(/public\/([^/]+)\/(.+)$/);
+            if (matches) {
+              const bucket = matches[1];
+              const path = matches[2];
+              await supabase.storage.from(bucket).remove([path]);
+            }
+          }
+        }
+      }
+      // 2. DB에서 공지사항 삭제
       const { error } = await supabase
         .from('notices')
         .delete()
@@ -397,7 +421,7 @@ const NoticeManager = () => {
                       className="admin-quill-editor"
                     />
                     <small className="admin-editor-guide">
-                      * 이미지는 JPG, PNG, GIF, WEBP 형식을 권장하며, 용량이 큰 경우 로딩이 느려질 수 있습니다. (권장: 2MB 이하)
+                      * 허용 형식: JPG, PNG, GIF, WEBP (최대 5MB)
                     </small>
                   </div>
                 </div>
@@ -407,6 +431,7 @@ const NoticeManager = () => {
                     <input
                       type="file"
                       multiple
+                      accept=".gif,.jpg,.jpeg,.png,.webp,.pdf,.hwp,.docx,.doc,.xls,.xlsx,.ppt,.pptx,.txt"
                       onChange={(e) => {
                         const files = e.target.files;
                         if (files && files.length > 0) {
@@ -416,7 +441,7 @@ const NoticeManager = () => {
                       className="admin-input"
                     />
                     <small className="admin-file-restrictions">
-                      * 최대 파일 크기: 20MB (파일당)
+                      * 최대 파일 크기: 20MB
                     </small>
                     {files.length > 0 && (
                       <div className="admin-attached-files">
@@ -426,7 +451,18 @@ const NoticeManager = () => {
                             <li key={index}>
                               {file.name}
                               <button
-                                onClick={() => setFiles(files.filter((_, i) => i !== index))}
+                                onClick={async () => {
+                                  // storage에서 파일 삭제
+                                  if (file.url) {
+                                    const matches = file.url.match(/public\/([^/]+)\/(.+)$/);
+                                    if (matches) {
+                                      const bucket = matches[1];
+                                      const path = matches[2];
+                                      await supabase.storage.from(bucket).remove([path]);
+                                    }
+                                  }
+                                  setFiles(files.filter((_, i) => i !== index));
+                                }}
                                 className="admin-remove-file"
                               >
                                 삭제
