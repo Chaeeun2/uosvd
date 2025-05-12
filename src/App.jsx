@@ -32,14 +32,13 @@ function App() {
         const { data: existingVisit } = await supabase
           .from('visits')
           .select('*')
-          .eq('visit_date', today)
-          .single();
+          .eq('visit_date', today);
 
-        if (existingVisit) {
+        if (existingVisit && existingVisit.length > 0) {
           // 기존 방문 기록이 있으면 카운트 증가
           await supabase
             .from('visits')
-            .update({ count: existingVisit.count + 1 })
+            .update({ count: existingVisit[0].count + 1 })
             .eq('visit_date', today);
         } else {
           // 새로운 날짜의 첫 방문이면 새 레코드 생성
