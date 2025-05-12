@@ -53,7 +53,7 @@ export default function Dashboard() {
       // 오늘 방문자 수
       const { count: todayVisits, error: todayVisitError } = await supabase
         .from('visits')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact' })
         .eq('visit_date', today);
       
       if (todayVisitError) throw todayVisitError;
