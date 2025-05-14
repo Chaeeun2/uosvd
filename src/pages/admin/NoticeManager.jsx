@@ -30,7 +30,7 @@ const NoticeManager = () => {
       ['bold', 'italic', 'underline'],
       [{ 'align': [] }],
       [{ 'color': [] }, { 'background': [] }],
-      ['image'],
+      ['link', 'image'],
       ['clean']
     ]
   };
@@ -40,7 +40,7 @@ const NoticeManager = () => {
     'bold', 'italic', 'underline',
     'align',
     'color', 'background',
-    'image'
+    'link', 'image'
   ];
 
   useEffect(() => {

@@ -155,6 +155,7 @@ const ContentManager = () => {
       ['bold', 'italic', 'underline'],
       [{ 'color': [] }, { 'background': [] }],
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link', 'image'],
       ['clean']
     ]
   };
@@ -163,7 +164,8 @@ const ContentManager = () => {
     'header',
     'bold', 'italic', 'underline',
     'color', 'background',
-    'list', 'bullet'
+    'list', 'bullet',
+    'link', 'image'
   ];
 
   // 이미지 업로드 처리 함수 수정
