@@ -91,6 +91,7 @@ select.admin-input,
   background: white;
   border-radius: 10px;
   padding: 25px;
+  height: 100%;
 }
 
 .admin-content-nav h3 {
