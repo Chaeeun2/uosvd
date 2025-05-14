@@ -109,10 +109,11 @@
   font-size: 16px;
   color: black;
   border-bottom: 2px solid black;
+  padding: 0 0 50px 0 !important;
 }
 
 .notice-content p {
-  line-height: 1.8;
+  line-height: 1.6;
 }
 
 /* 리치텍스트 정렬 스타일 */
@@ -210,11 +211,13 @@
   font-size: 1.05em;
   opacity: 0.4;
   padding: 10px 15px;
+  border: none !important;
 }
 
 .pagination button:hover {
   background: none;
   opacity: 1;
+  border: none !important;
 }
 
 .pagination button.active {
@@ -222,6 +225,7 @@
   background: none;
   font-weight: 800;
   opacity: 1;
+  border: none !important;
 }
 
 .pagination button:disabled {
@@ -231,6 +235,19 @@
 
 .ql-editor {
   padding: 0 0 50px 0 !important;
+}
+
+/* 일반 테이블 스타일 */
+.notice-content table {
+  border-collapse: collapse;
+  width: 100%;
+  border: 1px solid #e3e3e3;
+}
+
+.notice-content th,
+.notice-content td {
+  border: 1px solid #e3e3e3;
+  padding: 6px 10px;
 }
 
 @media (max-width: 1024px) {

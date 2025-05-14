@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { supabase } from '../../lib/supabase';
 import Modal from '../../components/Modal';
 import AdminLayout from '../../components/AdminLayout';
 import '../../styles/admin.css';
 import { v4 as uuidv4 } from 'uuid';
+import { Editor } from '@tinymce/tinymce-react';
 
 const ContentManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,6 +19,8 @@ const ContentManager = () => {
   const [editorKey, setEditorKey] = useState(0);
   const [imageFile, setImageFile] = useState(null);
   const [imageUrl, setImageUrl] = useState('');
+
+  const apiKey = import.meta.env.VITE_TINYMCE_API_KEY;
 
   // 메뉴 데이터 가져오기
   const fetchMenus = async () => {
@@ -147,87 +148,6 @@ const ContentManager = () => {
       fetchContents(selectedFilterMenuId);
     }
   }, [selectedFilterMenuId]);
-
-  // 기본 에디터 설정
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'image'],
-      ['clean']
-    ]
-  };
-
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline',
-    'color', 'background',
-    'list', 'bullet',
-    'link', 'image'
-  ];
-
-  // 이미지 업로드 처리 함수 수정
-  const handleImageUpload = async (file) => {
-    try {
-      if (!file) return;
-
-      // 파일 크기 제한 (5MB)
-      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`이미지 크기는 5MB 이하여야 합니다. 현재 크기: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-      }
-
-      // 확장자 체크
-      const allowedExts = ['gif', 'jpg', 'jpeg', 'png', 'webp'];
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (!allowedExts.includes(ext)) {
-        throw new Error('허용된 이미지 확장자가 아닙니다. (gif, jpg, jpeg, png, webp만 가능)');
-      }
-
-      // 허용된 이미지 타입
-      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        throw new Error('허용된 이미지 형식이 아닙니다. (gif, jpg, jpeg, png, webp 파일만 업로드 가능)');
-      }
-
-      // uuid로 파일명 생성
-      const fileName = `${uuidv4()}.${ext}`;
-
-      // 파일 업로드
-      const { data, error: uploadError } = await supabase.storage
-        .from('content-images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('파일 업로드 실패:', uploadError);
-        throw uploadError;
-      }
-
-      console.log('업로드 성공:', data);
-
-      // 공개 URL 가져오기
-      const { data: { publicUrl }, error: urlError } = supabase.storage
-        .from('content-images')
-        .getPublicUrl(fileName);
-
-      if (urlError) {
-        console.error('URL 가져오기 실패:', urlError);
-        throw urlError;
-      }
-
-      console.log('이미지 URL:', publicUrl);
-      setImageUrl(publicUrl);
-
-    } catch (error) {
-      console.error('이미지 업로드 실패:', error.message || error);
-      alert(`이미지 업로드 실패: ${error.message || '알 수 없는 오류가 발생했습니다.'}`);
-    }
-  };
 
   const openModal = (contentToEdit = null) => {
     if (contentToEdit) {
@@ -379,6 +299,43 @@ const ContentManager = () => {
     return plainText.length > 50 ? plainText.substring(0, 70) + '...' : plainText;
   };
 
+  function MyEditorComponent({ content, setContent }) {
+    return (
+      <Editor
+        apiKey={apiKey}
+        value={content}
+        init={{
+          height: 400,
+          menubar: false,
+          plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+            'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'table', 'help', 'wordcount', 'paste'
+          ],
+          toolbar:
+            'undo redo | formatselect | bold italic underline forecolor backcolor | ' +
+            'alignleft aligncenter alignright alignjustify | ' +
+            'bullist numlist | link table | removeformat | help',
+          content_style: `body { margin: 20px; } p { margin: 0; }`,
+          paste_as_text: false,
+          paste_data_images: true,
+          paste_enable_default_filters: true,
+          paste_webkit_styles: 'all',
+          paste_merge_formats: true,
+          paste_retain_style_properties: 'all',
+          language: 'ko',
+          language_url: '/tinymce/langs/ko.js',
+          base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.3',
+          image_class_list: [],
+          image_title: false,
+          image_caption: false,
+          image_advtab: false,
+        }}
+        onEditorChange={(newValue) => setContent(newValue)}
+      />
+    );
+  }
+
   return (
     <AdminLayout>
       <div className="admin-content">
@@ -507,7 +464,7 @@ const ContentManager = () => {
                   }}
                   className="admin-input"
                 />
-                <small className="admin-editor-guide">
+                <small className="admin-file-restrictions">
                   * 허용 형식: JPG, PNG, GIF, WEBP (최대 5MB)
                 </small>
                 {imageUrl && (
@@ -534,17 +491,11 @@ const ContentManager = () => {
                               </div>
                               </div>
 
-              <div className="admin-quill-wrapper form-group">
+              <div className="form-group">
                 <label>내용</label>
-                <ReactQuill
-                  key={editorKey}
-                  theme="snow"
-                  value={content}
-                  onChange={setContent}
-                  modules={modules}
-                  formats={formats}
-                  className="admin-quill-editor"
-                />
+                <div>
+                  <MyEditorComponent content={content} setContent={setContent} />
+                </div>
               </div>
               <div className="admin-button-group">
                 <button onClick={handleSubmit} className="admin-button">

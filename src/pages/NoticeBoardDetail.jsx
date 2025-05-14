@@ -114,7 +114,21 @@ const NoticeBoardDetail = () => {
           <p><span>조회수</span>{notice.views || 0}</p>
         </div>
 
-        <div className="notice-content ql-editor" dangerouslySetInnerHTML={{ __html: notice.content }} />
+        {/* 이미지 배열이 있으면 본문 위에 모두 렌더링 */}
+        {Array.isArray(notice.image_urls) && notice.image_urls.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            {notice.image_urls.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`공지 이미지 ${idx + 1}`}
+                style={{ maxWidth: '100%', marginBottom: 8, display: 'block' }}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="notice-content" dangerouslySetInnerHTML={{ __html: notice.content }} />
 
         {notice.files && notice.files.length > 0 && (
           <div className="notice-files">

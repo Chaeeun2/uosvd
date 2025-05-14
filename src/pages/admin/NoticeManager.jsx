@@ -1,11 +1,83 @@
 import React, { useState, useEffect } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import { Editor } from '@tinymce/tinymce-react';
 import { supabase } from '../../lib/supabase';
 import AdminLayout from '../../components/AdminLayout';
 import Modal from '../../components/Modal';
 import '../../styles/admin.css';
 import { v4 as uuidv4 } from 'uuid';
+
+const apiKey = import.meta.env.VITE_TINYMCE_API_KEY;
+
+function MyEditorComponent({ content, setContent }) {
+  // 에디터 외부 이미지 업로드 핸들러
+  const handleImagesUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+      // 확장자 및 크기 체크
+      const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!allowedExts.includes(ext)) {
+        alert('허용된 이미지 형식이 아닙니다. (JPG, PNG, GIF, WEBP)');
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('이미지 크기는 5MB 이하여야 합니다.');
+        continue;
+      }
+      const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
+      const { data, error } = await supabase.storage
+        .from('notice-files')
+        .upload(fileName, file);
+      if (error) {
+        alert('이미지 업로드 실패: ' + error.message);
+        continue;
+      }
+      const { data: publicData } = supabase.storage.from('notice-files').getPublicUrl(fileName);
+      const publicUrl = publicData?.publicUrl;
+      if (publicUrl && typeof publicUrl === 'string') {
+        // 에디터에 이미지 삽입
+        if (window.tinymce && window.tinymce.activeEditor) {
+          window.tinymce.activeEditor.insertContent(`<img src="${publicUrl}" style="max-width:100%;" />`);
+        }
+      }
+    }
+    // 파일 input 초기화
+    e.target.value = '';
+  };
+
+  return (
+    <>
+      <Editor
+        apiKey={apiKey}
+        value={content}
+        init={{
+          height: 400,
+          menubar: false,
+          plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+            'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'table', 'help', 'wordcount', 'paste'
+          ],
+          toolbar:
+            'undo redo | formatselect | bold italic underline forecolor backcolor | ' +
+            'alignleft aligncenter alignright alignjustify | ' +
+            'bullist numlist | link table | removeformat | help',
+          content_style: `body { margin: 20px; } p { margin: 0; }`,
+          paste_as_text: false,
+          paste_data_images: true,
+          paste_enable_default_filters: true,
+          paste_webkit_styles: 'all',
+          paste_merge_formats: true,
+          paste_retain_style_properties: 'all',
+          language: 'ko',
+          language_url: '/tinymce/langs/ko.js',
+          base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.3'
+        }}
+        onEditorChange={(newValue) => setContent(newValue)}
+      />
+    </>
+  );
+}
 
 const NoticeManager = () => {
   const [notices, setNotices] = useState([]);
@@ -22,26 +94,8 @@ const NoticeManager = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [showImportantOnly, setShowImportantOnly] = useState(false);
   const itemsPerPage = 10;
-
-  // 에디터 설정
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline'],
-      [{ 'align': [] }],
-      [{ 'color': [] }, { 'background': [] }],
-      ['link', 'image'],
-      ['clean']
-    ]
-  };
-
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline',
-    'align',
-    'color', 'background',
-    'link', 'image'
-  ];
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imageUrls, setImageUrls] = useState([]);
 
   useEffect(() => {
     checkAuth();
@@ -113,10 +167,10 @@ const NoticeManager = () => {
         }
 
         // 확장자 체크
-        const allowedExts = ['gif', 'jpg', 'jpeg', 'png', 'webp', 'pdf', 'hwp', 'docx', 'doc', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'];
+        const allowedExts = ['gif', 'jpg', 'jpeg', 'png', 'webp', 'pdf', 'hwp', 'docx', 'doc', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip'];
         const ext = file.name.split('.').pop().toLowerCase();
         if (!allowedExts.includes(ext)) {
-          alert(`${file.name}: 허용된 파일 형식이 아닙니다. (이미지: gif, jpg, jpeg, png, webp / 문서: pdf, hwp, docx, doc, xls, xlsx, ppt, pptx, txt)`);
+          alert(`${file.name}: 허용된 파일 형식이 아닙니다. (이미지: gif, jpg, jpeg, png, webp / 문서: pdf, hwp, docx, doc, xls, xlsx, ppt, pptx, txt, zip)`);
           continue;
         }
 
@@ -167,6 +221,77 @@ const NoticeManager = () => {
     }
   };
 
+  const handleImagesUpload = async (files) => {
+    const urls = [];
+    for (const file of files) {
+      const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!allowedExts.includes(ext)) {
+        alert('허용된 이미지 형식이 아닙니다. (JPG, PNG, GIF, WEBP)');
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('이미지 크기는 5MB 이하여야 합니다.');
+        continue;
+      }
+      const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
+      const { data, error } = await supabase.storage
+        .from('notice-files')
+        .upload(fileName, file);
+      if (error) {
+        alert('이미지 업로드 실패: ' + error.message);
+        continue;
+      }
+      const { data: publicData } = supabase.storage.from('notice-files').getPublicUrl(fileName);
+      const publicUrl = publicData?.publicUrl;
+      if (publicUrl && typeof publicUrl === 'string') {
+        urls.push(publicUrl);
+      }
+    }
+    setImageUrls(prev => [...prev, ...urls]);
+  };
+
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+    // 확장자 및 크기 체크
+    const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!allowedExts.includes(ext)) {
+      alert('허용된 이미지 형식이 아닙니다. (JPG, PNG, GIF, WEBP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('이미지 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+    const fileName = `${uuidv4()}.${ext}`;
+    const { data, error: uploadError } = await supabase.storage
+      .from('notice-files')
+      .upload(fileName, file);
+    if (uploadError) {
+      alert('이미지 업로드 실패: ' + uploadError.message);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('notice-files').getPublicUrl(fileName);
+    setImageUrls(prev => [...prev, publicUrl]);
+    setImageFiles(prev => [...prev, file]);
+  };
+
+  const handleRemoveImage = async () => {
+    if (imageUrls.length > 0) {
+      for (const url of imageUrls) {
+        const matches = url.match(/public\/([^/]+)\/(.+)$/);
+        if (matches) {
+          const bucket = matches[1];
+          const path = matches[2];
+          await supabase.storage.from(bucket).remove([path]);
+        }
+      }
+    }
+    setImageUrls([]);
+    setImageFiles([]);
+  };
+
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
@@ -180,7 +305,8 @@ const NoticeManager = () => {
         title: title.trim(),
         content: content.trim(),
         files: files,
-        is_important: isImportant
+        is_important: isImportant,
+        image_urls: imageUrls
       };
 
       if (editingNoticeId) {
@@ -255,12 +381,14 @@ const NoticeManager = () => {
       setContent(notice.content || '');
       setFiles(notice.files || []);
       setIsImportant(notice.is_important || false);
+      setImageUrls(notice.image_urls || []);
     } else {
       setEditingNoticeId(null);
       setTitle('');
       setContent('');
       setFiles([]);
       setIsImportant(false);
+      setImageUrls([]);
     }
     setIsModalOpen(true);
   };
@@ -397,6 +525,7 @@ const NoticeManager = () => {
                     </label>
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label htmlFor="notice-title">제목</label>
                   <input
@@ -405,24 +534,55 @@ const NoticeManager = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="제목을 입력하세요."
-                    className="admin-input"
+                    className="admin-input" 
                   />
                 </div>
                 <div className="form-group">
                   <label>내용</label>
+                  <MyEditorComponent content={content} setContent={setContent}  style={{ flex: 10 }} />
+                </div>
+                                                <div className="form-group">
+                  <label>이미지</label>
                   <div style={{ flex: 10 }}>
-                    <ReactQuill
-                      key={editorKey}
-                      theme="snow"
-                      value={content}
-                      onChange={setContent}
-                      modules={modules}
-                      formats={formats}
-                      className="admin-quill-editor"
+                    <input
+                      type="file"
+                      id="image"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      multiple
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files);
+                        await handleImagesUpload(files);
+                        e.target.value = '';
+                      }}
+                      className="admin-input"
                     />
-                    <small className="admin-editor-guide">
+                    <small className="admin-file-restrictions">
                       * 허용 형식: JPG, PNG, GIF, WEBP (최대 5MB)
                     </small>
+                    {imageUrls.length > 0 && (
+                      <div className="admin-image-preview">
+                        {imageUrls.map((url, idx) => (
+                          <div className="admin-image-wrap" key={idx}>
+                            <img src={url} alt="미리보기" style={{ maxWidth: 120, maxHeight: 120 }} />
+                            <button
+                              onClick={async () => {
+                                // storage에서 이미지 삭제
+                                const matches = url.match(/public\/([^/]+)\/(.+)$/);
+                                if (matches) {
+                                  const bucket = matches[1];
+                                  const path = matches[2];
+                                  await supabase.storage.from(bucket).remove([path]);
+                                }
+                                setImageUrls(imageUrls.filter((_, i) => i !== idx));
+                              }}
+                              className="admin-button"
+                            >
+                              이미지 제거
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="form-group">
@@ -431,7 +591,7 @@ const NoticeManager = () => {
                     <input
                       type="file"
                       multiple
-                      accept=".gif,.jpg,.jpeg,.png,.webp,.pdf,.hwp,.docx,.doc,.xls,.xlsx,.ppt,.pptx,.txt"
+                      accept=".gif,.jpg,.jpeg,.png,.webp,.pdf,.hwp,.docx,.doc,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
                       onChange={(e) => {
                         const files = e.target.files;
                         if (files && files.length > 0) {

@@ -386,49 +386,6 @@ select.admin-input,
   margin-bottom: 20px;
 }
 
-/* 리치 텍스트 에디터 스타일 */
-.admin-quill-wrapper {
-  margin-bottom: 30px;
-}
-
-.admin-quill-editor {
-  height: 400px;
-}
-
-.admin-quill-editor .ql-toolbar.ql-snow {
-  border: 1px solid #e3e3e3;
-  border-radius: 10px 10px 0 0;
-  padding: 10px 15px;
-  background: white;
-}
-
-.admin-quill-editor .ql-container.ql-snow {
-  border: 1px solid #e3e3e3;
-  border-top: none;
-  border-radius: 0 0 10px 10px;
-  background: white;
-  height: calc(400px - 43px); /* 전체 높이에서 toolbar 높이를 뺌 */
-}
-
-.admin-quill-editor .ql-container {
-  font-size: 16px;
-  font-family: inherit;
-}
-
-.admin-quill-editor .ql-editor {
-  font-size: 16px;
-  line-height: 1.5;
-  padding: 15px !important;
-  height: 100%; /* container의 높이를 채우도록 설정 */
-}
-
-.admin-editor-guide {
-  display: block;
-  color: #666;
-  padding-top: 10px;
-  font-size: 0.9em;
-}
-
 /* 파일 업로드 스타일 */
 .admin-file-upload-section {
   margin: 20px 0;
@@ -584,12 +541,22 @@ select.admin-input,
 .admin-image-preview {
   width: 150px;
   margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: flex-start;
+  gap: 20px;
 }
 
 .admin-image-preview img {
   border: 1px solid #d8d8d8;
   margin-bottom: 5px;
   width: 100%;
+}
+
+.admin-image-wrap {
+  display: flex;
+  flex-direction: column;
 }
 
 .admin-login button {
@@ -967,4 +934,12 @@ select.admin-input,
   font-size: 3.5em;
   margin-top: 10px;
   color: #888;
+}
+
+.tox-tinymce {
+  flex: 10;
+  border: 1px solid #e3e3e3 !important;
+}
+.mce-content-body {
+  padding: 20px;
 }
