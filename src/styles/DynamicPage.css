@@ -51,7 +51,7 @@
 
 /* 리치텍스트 콘텐츠 스타일링 */
 .content-item img {
-  max-width: 50%;
+  max-width: 35%;
   height: auto;
   margin-bottom: 5px;
 }
