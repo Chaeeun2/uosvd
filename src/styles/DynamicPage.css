@@ -37,6 +37,11 @@
   padding: 0 20px 50px 20px;
 }
 
+.content-item .content-text a {
+  color: black;
+  text-decoration: underline;
+}
+
 .content-item div {
   font-size: 1.05em;
   flex: 5;
