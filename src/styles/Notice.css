@@ -170,10 +170,6 @@
   background: none;
 }
 
-.file-download-button:hover {
-  color: #0056b3;
-}
-
 .back-button {
   display: block;
   margin-left: auto;

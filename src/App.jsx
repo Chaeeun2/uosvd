@@ -1,19 +1,12 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import DynamicPage from './pages/DynamicPage';
 import NoticeBoard from './pages/NoticeBoard';
 import NoticeBoardDetail from './pages/NoticeBoardDetail';
-import Dashboard from './pages/admin/Dashboard';
-import MenuManager from './pages/admin/MenuManager';
-import ContentManager from './pages/admin/ContentManager';
-import Login from './pages/admin/Login';
-import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { MobileProvider } from './contexts/MobileContext';
-import NoticeManager from './pages/admin/NoticeManager';
 import { supabase } from './lib/supabase';
-import AdminLayout from './components/AdminLayout';
 
 function App() {
   useEffect(() => {
@@ -54,58 +47,20 @@ function App() {
       }
     };
 
-    // 관리자 페이지 방문은 카운트하지 않음
-    if (!window.location.pathname.startsWith('/admin')) {
-      countVisit();
-    }
+    countVisit();
   }, []);
 
   console.log("App 컴포넌트 렌더링");
   return (
     <MobileProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/notices" element={<NoticeBoard />} />
-            <Route path="/notices/:id" element={<NoticeBoardDetail />} />
-            <Route path="/admin/login" element={<Login />} />
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/menus" 
-              element={
-                <ProtectedRoute>
-                  <MenuManager />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/content" 
-              element={
-                <ProtectedRoute>
-                  <ContentManager />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/notice" 
-              element={
-                <ProtectedRoute>
-                  <NoticeManager />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="/:slug" element={<DynamicPage />} />
-            <Route path="/:parent/:slug" element={<DynamicPage />} />
-          </Routes>
-        </BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/notices" element={<NoticeBoard />} />
+          <Route path="/notices/:id" element={<NoticeBoardDetail />} />
+          <Route path="/:slug" element={<DynamicPage />} />
+          <Route path="/:parent/:slug" element={<DynamicPage />} />
+        </Routes>
       </AuthProvider>
     </MobileProvider>
   );

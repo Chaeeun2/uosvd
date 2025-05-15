@@ -19,7 +19,7 @@ export default function Login() {
 
   useEffect(() => {
     if (user && user.email === import.meta.env.VITE_ADMIN_EMAIL) {
-      navigate('/admin');
+      navigate('/');
     }
   }, [user, navigate]);
 

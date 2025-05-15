@@ -40,19 +40,6 @@
   font-size: 14px;
   transition: background-color 0.2s;
 }
-
-.button:hover {
-  background-color: #0056b3;
-}
-
-.button.secondary {
-  background-color: #6c757d;
-}
-
-.button.secondary:hover {
-  background-color: #5a6268;
-}
-
 /* 공통 입력 필드 스타일 */
 .input {
   padding: 8px 12px;
@@ -92,10 +79,6 @@
 
 .pagination .button.secondary {
   background-color: #6c757d;
-}
-
-.pagination .button.secondary:hover {
-  background-color: #5a6268;
 }
 
 @media (max-width: 1024px) {

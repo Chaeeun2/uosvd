@@ -17,6 +17,21 @@ export default function AdminLayout({ children }) {
     checkAdmin();
   }, []);
 
+  // 브라우저 뒤로가기 처리
+  useEffect(() => {
+    const handlePopState = () => {
+      // 현재 경로가 유효한지 확인
+      const validPaths = ['/', '/menus', '/content', '/notice'];
+      if (!validPaths.includes(location.pathname)) {
+        // 유효하지 않은 경로면 대시보드로 리다이렉트
+        navigate('/');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [location.pathname, navigate]);
+
   async function checkAdmin() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -52,17 +67,17 @@ export default function AdminLayout({ children }) {
         <h2>UOSVD Admin</h2>
         <nav>
           <ul>
-            <li className={location.pathname === '/admin' ? 'active' : ''}>
-              <Link to="/admin">대시보드</Link>
+            <li className={location.pathname === '/' ? 'active' : ''}>
+              <Link to="/">대시보드</Link>
             </li>
-            <li className={location.pathname === '/admin/menus' ? 'active' : ''}>
-              <Link to="/admin/menus">메뉴 관리</Link>
+            <li className={location.pathname === '/menus' ? 'active' : ''}>
+              <Link to="/menus">메뉴 관리</Link>
             </li>
-            <li className={location.pathname === '/admin/content' ? 'active' : ''}>
-              <Link to="/admin/content">콘텐츠 관리</Link>
+            <li className={location.pathname === '/content' ? 'active' : ''}>
+              <Link to="/content">콘텐츠 관리</Link>
             </li>
-            <li className={location.pathname === '/admin/notice' ? 'active' : ''}>
-              <Link to="/admin/notice">공지사항 관리</Link>
+            <li className={location.pathname === '/notice' ? 'active' : ''}>
+              <Link to="/notice">공지사항 관리</Link>
             </li>
           </ul>
         </nav>

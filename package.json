@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "mkdir -p dist/admin && cp dist/admin.html dist/admin/index.html",
+    "start": "node server.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -24,6 +26,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "@tinymce/tinymce-react": "^6.1.0",
     "ckeditor5": "^45.1.0",
+    "express": "^5.1.0",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-dnd": "^16.0.1",
@@ -32,7 +35,7 @@
     "react-quill": "^2.0.0",
     "react-router-dom": "^6.18.0",
     "react-type-animation": "^3.2.0",
-    "tinymce": "^7.8.0",
+    "tinymce": "^7.9.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

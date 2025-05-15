@@ -17,7 +17,6 @@ const ContentManager = () => {
   const [editingContentId, setEditingContentId] = useState(null);
   const [selectedFilterMenuId, setSelectedFilterMenuId] = useState('');
   const [editorKey, setEditorKey] = useState(0);
-  const [imageFile, setImageFile] = useState(null);
   const [imageUrl, setImageUrl] = useState('');
 
   const apiKey = import.meta.env.VITE_TINYMCE_API_KEY;
@@ -299,49 +298,39 @@ const ContentManager = () => {
     return plainText.length > 50 ? plainText.substring(0, 70) + '...' : plainText;
   };
 
-  function MyEditorComponent({ content, setContent }) {
-    return (
-      <Editor
-        apiKey={apiKey}
-        value={content}
-        init={{
-          height: 400,
-          menubar: false,
-          plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-            'searchreplace', 'visualblocks', 'code', 'fullscreen',
-            'insertdatetime', 'table', 'help', 'wordcount', 'paste'
-          ],
-          toolbar:
-            'undo redo | formatselect | bold italic underline forecolor backcolor | ' +
-            'alignleft aligncenter alignright alignjustify | ' +
-            'bullist numlist | link table | removeformat | help',
-          content_style: `body { margin: 20px; } p { margin: 0; }`,
-          paste_as_text: false,
-          paste_data_images: true,
-          paste_enable_default_filters: true,
-          paste_webkit_styles: 'all',
-          paste_merge_formats: true,
-          paste_retain_style_properties: 'all',
-          language: 'ko',
-          language_url: '/tinymce/langs/ko.js',
-          base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.3',
-          image_class_list: [],
-          image_title: false,
-          image_caption: false,
-          image_advtab: false,
-        }}
-        onEditorChange={(newValue) => setContent(newValue)}
-      />
-    );
-  }
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+    const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!allowedExts.includes(ext)) {
+      alert('허용된 이미지 형식이 아닙니다. (JPG, PNG, GIF, WEBP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('이미지 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+    const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from('content-images')
+      .upload(fileName, file);
+    if (error) {
+      alert('이미지 업로드 실패: ' + error.message);
+      return;
+    }
+    const { data: publicData } = supabase.storage.from('content-images').getPublicUrl(fileName);
+    const publicUrl = publicData?.publicUrl;
+    if (publicUrl && typeof publicUrl === 'string') {
+      setImageUrl(publicUrl);
+    }
+  };
 
   return (
     <AdminLayout>
       <div className="admin-content">
         <h2 className="admin-page-title">콘텐츠 관리</h2>
         <div className="admin-content-layout">
-                  {/* 사이드 메뉴 네비게이션 */}
+          {/* 사이드 메뉴 네비게이션 */}
           <div className="admin-content-nav">
             <div className="admin-menu-list">
               {menus.map(menu => (
@@ -450,51 +439,120 @@ const ContentManager = () => {
               
               {/* 이미지 업로드 필드 */}
               <div className="admin-image-upload form-group">
-                              <label htmlFor="image">이미지</label>
-                              <div>
-                <input
-                  type="file"
-                  id="image"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      handleImageUpload(file);
-                    }
-                  }}
-                  className="admin-input"
-                />
-                <small className="admin-file-restrictions">
-                  * 허용 형식: JPG, PNG, GIF, WEBP (최대 5MB)
-                </small>
-                {imageUrl && (
-                  <div className="admin-image-preview">
-                    <img src={imageUrl} alt="미리보기" />
-                    <button 
-                      onClick={async () => {
-                        // storage에서 이미지 삭제
-                        const matches = imageUrl.match(/public\/([^/]+)\/(.+)$/);
-                        if (matches) {
-                          const bucket = matches[1];
-                          const path = matches[2];
-                          await supabase.storage.from(bucket).remove([path]);
-                        }
-                        setImageUrl('');
-                      }}
-                      className="admin-button"
-                    >
-                      이미지 제거
-                    </button>
-                  </div>
-                  
-                )}
-                              </div>
-                              </div>
+                <label htmlFor="image">이미지</label>
+                <div style={{ flex: 10 }}>
+                  <input
+                    type="file"
+                    id="image"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        await handleImageUpload(file);
+                      }
+                      e.target.value = '';
+                    }}
+                    className="admin-input"
+                  />
+                  <small className="admin-file-restrictions">
+                    * 허용 형식: JPG, PNG, GIF, WEBP (최대 5MB)
+                  </small>
+                  {imageUrl && (
+                    <div className="admin-image-preview">
+                      <div className="admin-image-wrap">
+                        <img src={imageUrl} alt="미리보기" style={{ maxWidth: 120, maxHeight: 120 }} />
+                        <button
+                          onClick={async () => {
+                            const matches = imageUrl.match(/public\/([^/]+)\/(.+)$/);
+                            if (matches) {
+                              const bucket = matches[1];
+                              const path = matches[2];
+                              await supabase.storage.from(bucket).remove([path]);
+                            }
+                            setImageUrl('');
+                          }}
+                          className="admin-button"
+                        >
+                          이미지 제거
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="form-group">
                 <label>내용</label>
-                <div>
-                  <MyEditorComponent content={content} setContent={setContent} />
+                <div style={{ flex: 10 }}>
+                  <Editor
+                    apiKey={apiKey}
+                    value={content}
+                    init={{
+                      height: 400,
+                      menubar: false,
+                      plugins: [
+                        'lists',
+                        'link',
+                        'table',
+                        'code',
+                        'advlist'
+                      ],
+                      toolbar: 'undo redo | ' +
+                        'bold italic underline forecolor backcolor | ' +
+                        'alignleft aligncenter alignright alignjustify | ' +
+                        'bullist numlist | link table | code',
+                      formats: {
+                        forecolor: { inline: 'span', styles: { color: '%value' } },
+                        backcolor: { inline: 'span', styles: { 'background-color': '%value' } }
+                      },
+                      base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.3',
+                      setup: (editor) => {
+                        editor.on('init', () => {
+                          const container = editor.getContainer();
+                          const editorElement = editor.getBody();
+                          
+                          const passiveEvents = ['scroll', 'wheel', 'touchstart', 'touchmove'];
+                          passiveEvents.forEach(eventType => {
+                            container.addEventListener(eventType, () => {}, { passive: true });
+                            editorElement.addEventListener(eventType, () => {}, { passive: true });
+                          });
+                        });
+                      },
+                      content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 18px; }',
+                      branding: false,
+                      promotion: false,
+                      resize: false,
+                      statusbar: false,
+                      browser_spellcheck: true,
+                      contextmenu: false,
+                      paste_data_images: true,
+                      paste_as_text: false,
+                      paste_webkit_styles: 'all',
+                      paste_merge_formats: true,
+                      paste_preprocess: function(plugin, args) {
+                        const allowedStyles = [
+                          'color', 'font-size', 'text-decoration', 'font-weight',
+                          'text-align', 'text-align-last', 'text-justify'
+                        ];
+                        args.content = args.content.replace(/style="([^"]*)"/g, (match, styleStr) => {
+                          const filtered = styleStr
+                            .split(';')
+                            .map(s => s.trim())
+                            .filter(s => allowedStyles.some(a => s.startsWith(a)))
+                            .join('; ');
+                          return filtered ? `style="${filtered}"` : '';
+                        });
+                      },
+                      default_link_target: '_blank',
+                      link_assume_external_targets: true,
+                      link_default_protocol: 'https',
+                      onboarding: false,
+                      quickbars_selection_toolbar: false,
+                      quickbars_insert_toolbar: false,
+                      quickbars_image_toolbar: false
+                    }}
+                    onEditorChange={(newValue) => setContent(newValue)}
+                  />
                 </div>
               </div>
               <div className="admin-button-group">

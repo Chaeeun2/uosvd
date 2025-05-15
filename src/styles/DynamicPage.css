@@ -4,12 +4,9 @@
   padding: 1em;
 }
 
-.dynamic-page {
-  width: 100%;
-}
-
 .page-title {
-  font-size: 2.5em;
+  font-size: 2rem;
+  color: #333;
   font-weight: 700;
   padding-left: 8px;
   border-bottom: 2px solid black;
@@ -19,22 +16,24 @@
 .content-item {
   display: flex;
   border-bottom: 2px solid black;
-  padding-bottom: 15px;
-  padding-top: 15px;
+  padding: 12px 5px;
+  background: #fff;
 }
 
 .content-item h2 {
-  font-size: 1.05em;
-  font-weight: 700;
+  font-size: 1.1rem;
+  color: #333;
   flex: 1;
   border-right: 2px solid black;
   min-width: 170px;
   word-break: keep-all;
-  padding-left: 10px;
+  padding: 10px 5px;
 }
 
 .content-item .content-text {
-  padding: 0 20px 50px 20px;
+  padding: 10px 25px 50px 25px;
+  line-height: 1.6;
+  font-size: 1.1em;
 }
 
 .content-item .content-text a {
@@ -43,7 +42,6 @@
 }
 
 .content-item div {
-  font-size: 1.05em;
   flex: 5;
   font-weight: 500;
   word-break: keep-all;
@@ -67,16 +65,88 @@
 }
 
 .content-item a {
-  color: #0066cc;
+  color: #000000;
   text-decoration: none;
 }
 
 .content-item a:hover {
+  color: #000000;
   text-decoration: underline;
 }
 
+.content-text {
+  line-height: 1.6;
+}
+
+.content-image {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.content-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.content-body {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.8;
+}
+
+.content-body p {
+  margin-bottom: 1rem;
+}
+
+.content-body img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+}
+
+.content-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.content-body table th,
+.content-body table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.content-body table th {
+  background-color: #f5f5f5;
+}
+
+.content-body a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.content-body a:hover {
+  text-decoration: underline;
+}
+
+.content-body ul,
+.content-body ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.content-body li {
+  margin-bottom: 0.5rem;
+}
+
 .no-content {
-  font-size: 1.05em;
+  text-align: center;
+  padding: 3rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  color: #666;
+  font-size: 1.1rem;
   font-weight: 500;
   padding-left: 10px;
   padding-top: 20px;
@@ -115,5 +185,23 @@
   .no-content {
     font-size: 0.98em;
     padding: 10px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dynamic-page {
+    padding: 15px;
+  }
+
+  .content-item {
+    padding: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .content-item h2 {
+    font-size: 1.3rem;
   }
 }

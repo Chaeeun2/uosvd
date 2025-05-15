@@ -1,0 +1,16 @@
+RewriteEngine On
+RewriteBase /
+
+# Admin page routing
+RewriteRule ^admin/?$ admin.html [L]
+
+# Handle React Router for main site
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [QSA,L]
+
+# Prevent directory listing
+Options -Indexes
+
+# Enable CORS
+Header set Access-Control-Allow-Origin "*" 

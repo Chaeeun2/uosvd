@@ -54,24 +54,65 @@ function MyEditorComponent({ content, setContent }) {
           height: 400,
           menubar: false,
           plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
-            'searchreplace', 'visualblocks', 'code', 'fullscreen',
-            'insertdatetime', 'table', 'help', 'wordcount', 'paste'
+            'lists',
+            'link',
+            'table',
+            'code',
+            'advlist'
           ],
-          toolbar:
-            'undo redo | formatselect | bold italic underline forecolor backcolor | ' +
+          toolbar: 'undo redo | ' +
+            'bold italic underline forecolor backcolor | ' +
             'alignleft aligncenter alignright alignjustify | ' +
-            'bullist numlist | link table | removeformat | help',
-          content_style: `body { margin: 20px; } p { margin: 0; }`,
-          paste_as_text: false,
+            'bullist numlist | link table | code',
+          formats: {
+            forecolor: { inline: 'span', styles: { color: '%value' } },
+            backcolor: { inline: 'span', styles: { 'background-color': '%value' } }
+          },
+          base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.3',
+          setup: (editor) => {
+            editor.on('init', () => {
+              const container = editor.getContainer();
+              const editorElement = editor.getBody();
+              
+              const passiveEvents = ['scroll', 'wheel', 'touchstart', 'touchmove'];
+              passiveEvents.forEach(eventType => {
+                container.addEventListener(eventType, () => {}, { passive: true });
+                editorElement.addEventListener(eventType, () => {}, { passive: true });
+              });
+            });
+          },
+          content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 18px; }',
+          branding: false,
+          promotion: false,
+          resize: false,
+          statusbar: false,
+          browser_spellcheck: true,
+          contextmenu: false,
           paste_data_images: true,
-          paste_enable_default_filters: true,
+          paste_as_text: false,
           paste_webkit_styles: 'all',
           paste_merge_formats: true,
-          paste_retain_style_properties: 'all',
-          language: 'ko',
-          language_url: '/tinymce/langs/ko.js',
-          base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.3'
+          paste_preprocess: function(plugin, args) {
+            const allowedStyles = [
+              'color', 'font-size', 'text-decoration', 'font-weight',
+              'text-align', 'text-align-last', 'text-justify'
+            ];
+            args.content = args.content.replace(/style="([^"]*)"/g, (match, styleStr) => {
+              const filtered = styleStr
+                .split(';')
+                .map(s => s.trim())
+                .filter(s => allowedStyles.some(a => s.startsWith(a)))
+                .join('; ');
+              return filtered ? `style="${filtered}"` : '';
+            });
+          },
+          default_link_target: '_blank',
+          link_assume_external_targets: true,
+          link_default_protocol: 'https',
+          onboarding: false,
+          quickbars_selection_toolbar: false,
+          quickbars_insert_toolbar: false,
+          quickbars_image_toolbar: false
         }}
         onEditorChange={(newValue) => setContent(newValue)}
       />
@@ -253,7 +294,6 @@ const NoticeManager = () => {
 
   const handleImageUpload = async (file) => {
     if (!file) return;
-    // 확장자 및 크기 체크
     const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     const ext = file.name.split('.').pop().toLowerCase();
     if (!allowedExts.includes(ext)) {
@@ -264,17 +304,19 @@ const NoticeManager = () => {
       alert('이미지 크기는 5MB 이하여야 합니다.');
       return;
     }
-    const fileName = `${uuidv4()}.${ext}`;
-    const { data, error: uploadError } = await supabase.storage
+    const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
+    const { data, error } = await supabase.storage
       .from('notice-files')
       .upload(fileName, file);
-    if (uploadError) {
-      alert('이미지 업로드 실패: ' + uploadError.message);
+    if (error) {
+      alert('이미지 업로드 실패: ' + error.message);
       return;
     }
-    const { data: { publicUrl } } = supabase.storage.from('notice-files').getPublicUrl(fileName);
-    setImageUrls(prev => [...prev, publicUrl]);
-    setImageFiles(prev => [...prev, file]);
+    const { data: publicData } = supabase.storage.from('notice-files').getPublicUrl(fileName);
+    const publicUrl = publicData?.publicUrl;
+    if (publicUrl && typeof publicUrl === 'string') {
+      setImageUrls(prev => [...prev, publicUrl]);
+    }
   };
 
   const handleRemoveImage = async () => {

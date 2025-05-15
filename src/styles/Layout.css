@@ -27,6 +27,9 @@
   text-decoration: none;
 }
 
+.top-header a:hover {
+  color: black;
+}
 .layout-container {
   display: flex;
   min-height: 100vh;
