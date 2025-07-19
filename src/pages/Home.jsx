@@ -66,7 +66,6 @@ export default function Home() {
       });
       
       if (error) {
-        console.error('메뉴 조회 오류:', error);
         return;
       }
 
@@ -86,7 +85,7 @@ export default function Home() {
       setMainMenus(mains);
       setSubMenus(subMenuGroups);
     } catch (error) {
-      console.error('오류:', error);
+      // 오류 처리
     } finally {
       setLoading(false);
     }

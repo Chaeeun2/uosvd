@@ -25,8 +25,6 @@ const ContentManager = () => {
   // 메뉴 데이터 가져오기
   const fetchMenus = async () => {
     try {
-      console.log('=== 메뉴 데이터 가져오기 시작 ===');
-      
       // 모든 메뉴 가져오기
       const { data: allMenus, error } = await getAllDocuments('menus', {
         orderBy: [{ field: 'orderSeq', direction: 'asc' }]
@@ -34,14 +32,9 @@ const ContentManager = () => {
 
       if (error) throw error;
 
-      console.log('Firebase에서 가져온 모든 메뉴:', allMenus);
-
       // 부모 메뉴와 자식 메뉴 분리
       const parents = allMenus.filter(menu => !menu.parentId);
       const children = allMenus.filter(menu => menu.parentId);
-
-      console.log('부모 메뉴 (parentId가 없는 것):', parents);
-      console.log('자식 메뉴 (parentId가 있는 것):', children);
 
       // 정렬된 메뉴 리스트 생성
       const formattedMenus = [];
@@ -55,11 +48,8 @@ const ContentManager = () => {
       });
       
       sortedParents.forEach(parent => {
-        console.log(`부모 메뉴 "${parent.title}" 처리 중...`);
-        
         // 게시판 메뉴는 숨김
         if (parent.title === '게시판') {
-          console.log(`게시판 메뉴 숨김 처리`);
           return;
         }
         
@@ -75,12 +65,9 @@ const ContentManager = () => {
           .filter(child => child.parentId === parent.id)
           .sort((a, b) => (a.orderSeq || 0) - (b.orderSeq || 0));
           
-        console.log(`부모 "${parent.title}"의 자식 메뉴들:`, childMenus);
-        
         childMenus.forEach(child => {
           // 공지 메뉴는 숨김
           if (child.title === '공지') {
-            console.log(`공지 메뉴 숨김 처리`);
             return;
           }
           
@@ -92,24 +79,18 @@ const ContentManager = () => {
         });
       });
 
-      console.log('최종 포맷된 메뉴:', formattedMenus);
       setMenus(formattedMenus);
       
       // 첫 번째 선택 가능한 메뉴를 기본값으로 설정
       if (formattedMenus.length > 0 && !selectedMenuId) {
         const firstSelectableMenu = formattedMenus.find(menu => !menu.disabled);
         if (firstSelectableMenu) {
-          console.log('기본 메뉴 설정:', firstSelectableMenu.title, firstSelectableMenu.id);
           setSelectedMenuId(firstSelectableMenu.id);
           setSelectedFilterMenuId(firstSelectableMenu.id);
-        } else {
-          console.log('선택 가능한 메뉴가 없습니다!');
         }
       }
-      
-      console.log('=== 메뉴 데이터 가져오기 완료 ===');
     } catch (error) {
-      console.error('메뉴 로딩 실패:', error);
+      alert('메뉴 로딩에 실패했습니다.');
     }
   };
 
@@ -124,23 +105,15 @@ const ContentManager = () => {
   // 콘텐츠 데이터 가져오기
   const fetchContents = async (menuId = selectedFilterMenuId) => {
     try {
-      console.log('=== 콘텐츠 로딩 시작 ===');
-      console.log('요청한 메뉴 ID:', menuId);
-      console.log('현재 selectedFilterMenuId:', selectedFilterMenuId);
-      
       const { data, error } = await getAllDocuments('contents', {
         where: [{ field: 'menuId', operator: '==', value: menuId }],
         orderBy: [{ field: 'orderSeq', direction: 'asc' }]
       });
 
       if (error) throw error;
-      console.log('Firebase에서 가져온 콘텐츠:', data);
-      console.log('콘텐츠 개수:', data ? data.length : 0);
       setContents(data || []);
-      
-      console.log('=== 콘텐츠 로딩 완료 ===');
     } catch (error) {
-      console.error('콘텐츠 로딩 실패:', error);
+      alert('콘텐츠 로딩에 실패했습니다.');
     }
   };
 
@@ -170,7 +143,6 @@ const ContentManager = () => {
       
       fetchContents();
     } catch (error) {
-      console.error('콘텐츠 삭제 실패:', error);
       alert('콘텐츠 삭제에 실패했습니다.');
     }
   };
@@ -263,7 +235,6 @@ const ContentManager = () => {
       closeModal(true);
       fetchContents();
     } catch (error) {
-      console.error('콘텐츠 저장 실패:', error);
       alert('콘텐츠 저장에 실패했습니다.');
     }
   };
@@ -288,7 +259,6 @@ const ContentManager = () => {
         await updateDocument('contents', update.id, update.data);
       }
     } catch (error) {
-      console.error('순서 업데이트 실패:', error);
       // 실패 시 원래 순서로 복원
       fetchContents();
     }
@@ -317,17 +287,10 @@ const ContentManager = () => {
       setImageUrl(result.url);
       return result.url;
     } catch (error) {
-      console.error('이미지 업로드 실패:', error);
       alert('이미지 업로드에 실패했습니다.');
       return null;
     }
   };
-
-  console.log('=== 렌더링 상태 ===');
-  console.log('menus:', menus);
-  console.log('contents:', contents);
-  console.log('selectedFilterMenuId:', selectedFilterMenuId);
-  console.log('selectedMenuId:', selectedMenuId);
 
   return (
     <AdminLayout>
@@ -343,7 +306,6 @@ const ContentManager = () => {
                   className={`admin-menu-item ${menu.disabled ? 'parent' : 'child'} ${selectedFilterMenuId === menu.id ? 'active' : ''}`}
                   onClick={() => {
                     if (!menu.disabled) {
-                      console.log('메뉴 선택:', menu.title, menu.id);
                       setSelectedFilterMenuId(menu.id);
                       fetchContents(menu.id);
                     }

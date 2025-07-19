@@ -17,14 +17,8 @@ export default function Login() {
   });
 
   useEffect(() => {
-    // 디버깅 로그 추가
-    console.log('Login useEffect - user:', user);
-    console.log('Login useEffect - isAdmin:', isAdmin);
-    console.log('Login useEffect - adminLoading:', adminLoading);
-    
     // 이미 로그인되어 있고 관리자인 경우 대시보드로 이동
     if (user && isAdmin && !adminLoading) {
-      console.log('대시보드로 이동합니다.');
       navigate('/'); // HashRouter에서는 루트 경로로 이동
     }
   }, [user, isAdmin, adminLoading, navigate]);
@@ -43,9 +37,7 @@ export default function Login() {
       }
 
       // 관리자 권한 확인은 AuthContext에서 자동으로 처리됨
-      console.log('로그인 성공');
     } catch (error) {
-      console.error('로그인 오류:', error);
       setError('로그인에 실패했습니다: ' + (error.message || '알 수 없는 오류가 발생했습니다.'));
     } finally {
       setLoading(false);

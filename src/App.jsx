@@ -8,7 +8,6 @@ import { AuthProvider } from './contexts/AuthContext';
 import { MobileProvider } from './contexts/MobileContext';
 
 function App() {
-  console.log("App 컴포넌트 렌더링");
   return (
     <MobileProvider>
       <AuthProvider>

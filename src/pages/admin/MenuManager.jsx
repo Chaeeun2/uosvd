@@ -55,7 +55,6 @@ export default function MenuManager() {
       setParentMenus(sortedParents);
       
     } catch (error) {
-      console.error('메뉴 로딩 오류:', error);
       setError('메뉴를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -73,8 +72,6 @@ export default function MenuManager() {
     if (!result.destination) return;
     if (result.destination.index === result.source.index && 
         result.destination.droppableId === result.source.droppableId) return;
-
-    console.log('드래그 결과:', result);
 
     const sourceId = result.source.droppableId;
     const destinationId = result.destination.droppableId;
@@ -112,9 +109,8 @@ export default function MenuManager() {
         
         // 메뉴 다시 불러오기
         await fetchMenus();
-        console.log('메뉴 순서가 업데이트 되었습니다.');
       } catch (error) {
-        console.error('메뉴 순서 업데이트 실패:', error);
+        alert('메뉴 순서 업데이트에 실패했습니다.');
       }
     }
   };
@@ -122,14 +118,10 @@ export default function MenuManager() {
   async function handleAddMenu(e) {
     e.preventDefault();
     try {
-      console.log('메뉴 추가 시작:', newMenu);
-      
       // parentId 처리 확인
       const parentId = newMenu.parent_id ? 
         (typeof newMenu.parent_id === 'string' ? newMenu.parent_id : newMenu.parent_id) : 
         null;
-      
-      console.log('처리된 parentId:', parentId);
       
       let orderSeq = 1;
       
@@ -147,8 +139,6 @@ export default function MenuManager() {
           orderSeq = Math.max(...topMenus.map(m => m.orderSeq || 0)) + 1;
         }
       }
-      
-      console.log('계산된 orderSeq:', orderSeq);
 
       // slug 생성 로직
       let slug = newMenu.slug;
@@ -171,19 +161,13 @@ export default function MenuManager() {
         isActive: true
       };
 
-      console.log('추가할 메뉴 데이터:', menuData);
-
       const { id, error } = await addDocument('menus', menuData);
-
-      console.log('Firebase 응답:', { id, error });
 
       if (error) throw error;
       
-      console.log('메뉴 추가 성공, 목록 새로고침');
       await fetchMenus();
       setNewMenu({ title: '', slug: '', parent_id: null, order_seq: 0 });
     } catch (error) {
-      console.error('메뉴 추가 실패:', error);
       alert('메뉴 추가에 실패했습니다: ' + error.message);
     }
   }
@@ -217,7 +201,6 @@ export default function MenuManager() {
       await deleteDocument('menus', id);
       await fetchMenus();
     } catch (error) {
-      console.error('메뉴 삭제 실패:', error);
       alert('메뉴 삭제에 실패했습니다.');
     }
   }
@@ -261,7 +244,6 @@ export default function MenuManager() {
       setEditingMenu(null);
       setNewMenu({ title: '', slug: '', parent_id: null, order_seq: 0 });
     } catch (error) {
-      console.error('메뉴 수정 실패:', error);
       alert('메뉴 수정에 실패했습니다: ' + error.message);
     }
   }

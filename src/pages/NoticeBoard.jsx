@@ -31,7 +31,7 @@ const NoticeBoard = () => {
         setMenuTitle(data[0].title);
       }
     } catch (error) {
-      console.error('메뉴 정보 로딩 실패:', error);
+      // 메뉴 정보 로딩 실패
     }
   };
 
@@ -69,7 +69,7 @@ const NoticeBoard = () => {
         regular: regularNotices || []
       });
     } catch (error) {
-      console.error('공지사항 로딩 실패:', error);
+      // 공지사항 로딩 실패
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,6 @@ const NoticeBoard = () => {
       await updateDocument('notices', notice.id, { views: newViews });
       navigate(`/notices/${notice.id}`);
     } catch (error) {
-      console.error('조회수 업데이트 실패:', error);
       // 조회수 업데이트 실패해도 상세 페이지로 이동
       navigate(`/notices/${notice.id}`);
     }

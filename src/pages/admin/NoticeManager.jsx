@@ -156,18 +156,13 @@ const NoticeManager = () => {
 
       // 클라이언트에서 필터링
       let filteredData = data || [];
-      console.log('전체 공지사항 데이터:', filteredData);
-      console.log('중요 공지 필터 상태:', showImportantOnly);
       
       if (showImportantOnly) {
         filteredData = filteredData.filter(notice => {
-          console.log('공지 ID:', notice.id, 'isImportant 값:', notice.isImportant, '타입:', typeof notice.isImportant);
           // 여러 가능한 필드명 확인
           const isImportant = notice.isImportant || notice.is_important || false;
-          console.log('최종 isImportant 값:', isImportant);
           return isImportant === true;
         });
-        console.log('필터링된 중요 공지:', filteredData);
       }
 
       // 페이지네이션 적용
@@ -181,7 +176,6 @@ const NoticeManager = () => {
       setTotalPages(totalPages);
       setNotices(paginatedData);
     } catch (error) {
-      console.error('공지사항 로딩 실패:', error);
       alert('공지사항을 불러오는데 실패했습니다.');
     }
   };
@@ -222,13 +216,10 @@ const NoticeManager = () => {
         // uuid로 고유한 파일 이름 생성
         const fileName = `${uuidv4()}.${fileExt}`;
         
-        console.log('업로드할 파일 이름:', fileName);
-
         // 파일 업로드
         const { url, error: uploadError } = await uploadToR2(file, `notice-files/${fileName}`);
 
         if (uploadError) {
-          console.error('Storage upload error:', uploadError);
           alert(`${file.name} 업로드 실패: ${uploadError}`);
           continue;
         }
@@ -242,7 +233,6 @@ const NoticeManager = () => {
         }]);
       }
     } catch (error) {
-      console.error('파일 업로드 상세 에러:', error);
       alert(`파일 업로드 실패: ${error.message || '알 수 없는 오류가 발생했습니다.'}`);
     }
   };
@@ -315,7 +305,7 @@ const NoticeManager = () => {
           const fileName = urlParts[urlParts.length - 1];
           await deleteFromR2(`notice-images/${fileName}`);
         } catch (error) {
-          console.error('이미지 삭제 실패:', error);
+          // 이미지 삭제 실패 시 무시
         }
       }
     }
@@ -342,16 +332,11 @@ const NoticeManager = () => {
         updatedAt: new Date().toISOString()
       };
 
-      console.log('저장할 공지 데이터:', noticeData);
-
       if (editingNoticeId) {
-        console.log('수정할 공지 ID:', editingNoticeId);
-        
         // 먼저 문서가 존재하는지 확인
         const { data: existingNotice, error: checkError } = await getDocument('notices', editingNoticeId);
         
         if (checkError || !existingNotice) {
-          console.error('수정할 공지사항을 찾을 수 없습니다:', editingNoticeId);
           alert('수정할 공지사항을 찾을 수 없습니다. 새로 작성해주세요.');
           setEditingNoticeId(null);
           return;
@@ -376,7 +361,6 @@ const NoticeManager = () => {
       closeModal(true);
       fetchNotices();
     } catch (error) {
-      console.error('공지사항 저장 실패:', error);
       alert(`공지사항 저장에 실패했습니다: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -398,10 +382,10 @@ const NoticeManager = () => {
               const fileName = urlParts[urlParts.length - 1];
               const deleteResult = await deleteFromR2(`notice-files/${fileName}`);
               if (!deleteResult.success) {
-                console.warn('파일 삭제 실패:', deleteResult.error);
+                // 파일 삭제 실패 시 무시
               }
             } catch (error) {
-              console.error('파일 삭제 실패:', error);
+              // 파일 삭제 실패 시 무시
             }
           }
         }
@@ -413,14 +397,12 @@ const NoticeManager = () => {
       if (error) throw error;
       fetchNotices();
     } catch (error) {
-      console.error('공지사항 삭제 실패:', error);
       alert('공지사항 삭제에 실패했습니다.');
     }
   };
 
   const openModal = (notice = null) => {
     if (notice) {
-      console.log('수정할 공지사항:', notice);
       setEditingNoticeId(notice.id);
       setTitle(notice.title);
       setContent(notice.content || '');
@@ -616,10 +598,10 @@ const NoticeManager = () => {
                                   const fileName = urlParts[urlParts.length - 1];
                                   const deleteResult = await deleteFromR2(`notice-images/${fileName}`);
                                   if (!deleteResult.success) {
-                                    console.warn('이미지 삭제 실패:', deleteResult.error);
+                                    // 이미지 삭제 실패 시 무시
                                   }
                                 } catch (error) {
-                                  console.error('이미지 삭제 실패:', error);
+                                  // 이미지 삭제 실패 시 무시
                                 }
                                 setImageUrls(imageUrls.filter((_, i) => i !== idx));
                               }}

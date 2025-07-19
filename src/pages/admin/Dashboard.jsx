@@ -48,7 +48,7 @@ export default function Dashboard() {
         monthlyVisits: visitorStats.monthlyVisits
       });
     } catch (error) {
-      console.error('통계 조회 오류:', error);
+      // 통계 조회 오류 처리
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export default function Dashboard() {
       if (noticesError) throw noticesError;
       setRecentNotices(notices || []);
     } catch (error) {
-      console.error('최근 데이터 로딩 실패:', error);
+      // 최근 데이터 로딩 실패 처리
     }
   }
 
