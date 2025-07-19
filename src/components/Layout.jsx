@@ -17,7 +17,6 @@ export default function Layout({ children }) {
 
   async function fetchMenus() {
     try {
-      console.log("Layout: 메뉴 로딩 시작");
       const { data: menuData, error } = await getAllDocuments('menus', {
         orderBy: [{ field: 'orderSeq', direction: 'asc' }]
       });

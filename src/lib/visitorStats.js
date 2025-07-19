@@ -55,7 +55,6 @@ export async function incrementVisitorCount() {
       });
     }
 
-    console.log('방문자 카운트 증가됨');
   } catch (error) {
     console.error('방문자 카운트 증가 실패:', error);
   }
