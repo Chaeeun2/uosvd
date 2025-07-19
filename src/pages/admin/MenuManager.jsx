@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { supabase } from '../../lib/supabase';
+import { getAllDocuments, addDocument, updateDocument, deleteDocument } from '../../lib/firebaseFirestore';
 import AdminLayout from '../../components/AdminLayout';
 import '../../styles/admin.css';
 import Modal from '../../components/Modal';
@@ -26,19 +26,33 @@ export default function MenuManager() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
-        .from('menus')
-        .select('*')
-        .order('order_seq', { ascending: true });
+      const { data, error } = await getAllDocuments('menus', {
+        orderBy: [{ field: 'orderSeq', direction: 'asc' }]
+      });
       
       if (error) throw error;
       
       // 모든 메뉴 저장
       setMenus(data || []);
       
-      // 부모 메뉴만 필터링 (parent_id가 null인 항목)
-      const parents = data.filter(menu => !menu.parent_id);
-      setParentMenus(parents);
+      // 부모 메뉴만 필터링 (parentId가 없는 항목)
+      const parents = data.filter(menu => !menu.parentId);
+      
+      // 원하는 순서대로 정렬
+      const desiredOrder = ['학과', '게시판', '아카이빙', '프린트룸', '기타'];
+      const sortedParents = parents.sort((a, b) => {
+        const aIndex = desiredOrder.indexOf(a.title);
+        const bIndex = desiredOrder.indexOf(b.title);
+        
+        // 원하는 순서에 없는 메뉴는 맨 뒤로
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        
+        return aIndex - bIndex;
+      });
+      
+      setParentMenus(sortedParents);
       
     } catch (error) {
       console.error('메뉴 로딩 오류:', error);
@@ -51,8 +65,8 @@ export default function MenuManager() {
   // 특정 부모 메뉴의 자식 메뉴 찾기
   const getChildMenus = (parentId) => {
     return menus
-      .filter(menu => menu.parent_id === parentId)
-      .sort((a, b) => a.order_seq - b.order_seq);
+      .filter(menu => menu.parentId === parentId)
+      .sort((a, b) => (a.orderSeq || 0) - (b.orderSeq || 0));
   };
 
   const handleDragEnd = async (result) => {
@@ -74,7 +88,7 @@ export default function MenuManager() {
         itemsToReorder = [...parentMenus];
       } else {
         // 드롭 영역 ID가 부모 ID (예: "children-5")
-        const parentId = parseInt(sourceId.split('-')[1]);
+        const parentId = sourceId.split('-')[1];
         itemsToReorder = getChildMenus(parentId);
       }
 
@@ -85,16 +99,15 @@ export default function MenuManager() {
       // 순서 업데이트
       const updatedMenus = itemsToReorder.map((menu, index) => ({
         ...menu,
-        order_seq: index + 1
+        orderSeq: index + 1
       }));
 
       try {
-        // 데이터베이스 업데이트
+        // Firebase 데이터베이스 업데이트
         for (const menu of updatedMenus) {
-          await supabase
-            .from('menus')
-            .update({ order_seq: menu.order_seq })
-            .eq('id', menu.id);
+          await updateDocument('menus', menu.id, {
+            orderSeq: menu.orderSeq
+          });
         }
         
         // 메뉴 다시 불러오기
@@ -111,31 +124,31 @@ export default function MenuManager() {
     try {
       console.log('메뉴 추가 시작:', newMenu);
       
-      // parent_id 처리 확인
+      // parentId 처리 확인
       const parentId = newMenu.parent_id ? 
-        (typeof newMenu.parent_id === 'string' ? parseInt(newMenu.parent_id) : newMenu.parent_id) : 
+        (typeof newMenu.parent_id === 'string' ? newMenu.parent_id : newMenu.parent_id) : 
         null;
       
-      console.log('처리된 parent_id:', parentId);
+      console.log('처리된 parentId:', parentId);
       
-      let order_seq = 1;
+      let orderSeq = 1;
       
       // 새 메뉴의 순서 결정
       if (parentId) {
-        // 같은 부모를 가진 메뉴들 중 가장 큰 order_seq + 1
-        const siblings = menus.filter(m => m.parent_id === parentId);
+        // 같은 부모를 가진 메뉴들 중 가장 큰 orderSeq + 1
+        const siblings = menus.filter(m => m.parentId === parentId);
         if (siblings.length > 0) {
-          order_seq = Math.max(...siblings.map(m => m.order_seq || 0)) + 1;
+          orderSeq = Math.max(...siblings.map(m => m.orderSeq || 0)) + 1;
         }
       } else {
-        // 최상위 메뉴 중 가장 큰 order_seq + 1
-        const topMenus = menus.filter(m => !m.parent_id);
+        // 최상위 메뉴 중 가장 큰 orderSeq + 1
+        const topMenus = menus.filter(m => !m.parentId);
         if (topMenus.length > 0) {
-          order_seq = Math.max(...topMenus.map(m => m.order_seq || 0)) + 1;
+          orderSeq = Math.max(...topMenus.map(m => m.orderSeq || 0)) + 1;
         }
       }
       
-      console.log('계산된 order_seq:', order_seq);
+      console.log('계산된 orderSeq:', orderSeq);
 
       // slug 생성 로직
       let slug = newMenu.slug;
@@ -153,19 +166,16 @@ export default function MenuManager() {
       const menuData = { 
         title: newMenu.title,
         slug: slug,
-        parent_id: parentId,
-        order_seq: order_seq,
-        is_active: true
+        parentId: parentId,
+        orderSeq: orderSeq,
+        isActive: true
       };
 
       console.log('추가할 메뉴 데이터:', menuData);
 
-      const { data, error } = await supabase
-        .from('menus')
-        .insert([menuData])
-        .select();
+      const { id, error } = await addDocument('menus', menuData);
 
-      console.log('Supabase 응답:', { data, error });
+      console.log('Firebase 응답:', { id, error });
 
       if (error) throw error;
       
@@ -185,7 +195,7 @@ export default function MenuManager() {
       if (!menuToDelete) return;
 
       // 하위 메뉴가 있는지 확인
-      const children = menus.filter(menu => menu.parent_id === id);
+      const children = menus.filter(menu => menu.parentId === id);
       
       let confirmMessage = `"${menuToDelete.title}" 메뉴를 삭제하시겠습니까?`;
       
@@ -200,11 +210,11 @@ export default function MenuManager() {
       // 하위 메뉴 먼저 삭제
       if (children.length > 0) {
         for (const child of children) {
-          await supabase.from('menus').delete().eq('id', child.id);
+          await deleteDocument('menus', child.id);
         }
       }
       
-      await supabase.from('menus').delete().eq('id', id);
+      await deleteDocument('menus', id);
       await fetchMenus();
     } catch (error) {
       console.error('메뉴 삭제 실패:', error);
@@ -217,8 +227,8 @@ export default function MenuManager() {
     setNewMenu({
       title: menu.title,
       slug: menu.slug,
-      parent_id: menu.parent_id,
-      order_seq: menu.order_seq
+      parent_id: menu.parentId,
+      order_seq: menu.orderSeq
     });
     
     // 페이지 상단으로 부드럽게 스크롤
@@ -234,19 +244,16 @@ export default function MenuManager() {
     
     try {
       const parentId = newMenu.parent_id ? 
-        (typeof newMenu.parent_id === 'string' ? parseInt(newMenu.parent_id) : newMenu.parent_id) : 
+        (typeof newMenu.parent_id === 'string' ? newMenu.parent_id : newMenu.parent_id) : 
         null;
 
       const menuData = {
         title: newMenu.title,
         slug: parentId ? newMenu.slug : null, // 최상위 메뉴인 경우 slug를 null로 설정
-        parent_id: parentId
+        parentId: parentId
       };
 
-      const { error } = await supabase
-        .from('menus')
-        .update(menuData)
-        .eq('id', editingMenu.id);
+      const { error } = await updateDocument('menus', editingMenu.id, menuData);
 
       if (error) throw error;
       

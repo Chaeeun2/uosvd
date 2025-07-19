@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin.html
+Disallow: /admin/*
+Crawl-delay: 1
+Sitemap: https://vd.design.ac.kr/sitemap.xml 

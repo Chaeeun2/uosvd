@@ -12,6 +12,33 @@
   background: white;
 }
 
+/* 로딩 스타일 */
+.admin-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2em;
+  color: #666;
+}
+
+.admin-logout-button {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #fff;
+  color: #666;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-logout-button:hover {
+  background-color: #f5f5f5;
+  border-color: #ccc;
+}
+
 /* 버튼 스타일 */
 .admin-button {
   padding: 8px 16px;
@@ -149,6 +176,7 @@ select.admin-input,
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid #eaeaea;
+  border-radius: 0px;
 }
 
 .admin-menu-item.parent:first-child {
@@ -250,10 +278,14 @@ select.admin-input,
   font-size: 0.9em;
   line-height: 1.5;
   font-weight: 500;
+  width: 85%;
 }
 
 .admin-content-preview p {
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-content-actions {
@@ -489,7 +521,7 @@ select.admin-input,
 
 .admin-login h2 {
   text-align: center;
-  color: #333;
+  color: black;
   border: none;
   padding: 0px 10px 20px 10px;
 }
@@ -514,7 +546,7 @@ select.admin-input,
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: #333;
+  color: black;
   width: 100px;
   flex: 1;
   font-weight: 600;
@@ -809,7 +841,7 @@ select.admin-input,
   margin: 5px 0 0 0;
   font-size: 1.8em;
   font-weight: 600;
-  color: #333;
+  color: black;
 }
 
 /* 최근 콘텐츠/공지사항 섹션 */

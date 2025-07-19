@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { getAllDocuments } from '../lib/firebaseFirestore';
 import '../styles/Layout.css';
 import { useMobile } from '../contexts/MobileContext';
 
@@ -18,34 +18,45 @@ export default function Layout({ children }) {
   async function fetchMenus() {
     try {
       console.log("Layout: 메뉴 로딩 시작");
-      const { data: menuData, error } = await supabase
-        .from('menus')
-        .select('*')
-        .order('order_seq');
+      const { data: menuData, error } = await getAllDocuments('menus', {
+        orderBy: [{ field: 'orderSeq', direction: 'asc' }]
+      });
       
       if (error) {
         console.error('Error fetching menus:', error);
         return;
       }
 
-      const mains = menuData.filter(menu => !menu.parent_id);
-      const subs = menuData.filter(menu => menu.parent_id);
+      const mains = menuData.filter(menu => !menu.parentId);
+      const subs = menuData.filter(menu => menu.parentId);
 
       const subMenuGroups = {};
       subs.forEach(menu => {
-        if (!subMenuGroups[menu.parent_id]) {
-          subMenuGroups[menu.parent_id] = [];
+        if (!subMenuGroups[menu.parentId]) {
+          subMenuGroups[menu.parentId] = [];
         }
-        subMenuGroups[menu.parent_id].push(menu);
+        subMenuGroups[menu.parentId].push(menu);
       });
 
       Object.values(subMenuGroups).forEach(group => {
-        group.sort((a, b) => a.order_seq - b.order_seq);
+        group.sort((a, b) => (a.orderSeq || 0) - (b.orderSeq || 0));
       });
 
-      mains.sort((a, b) => a.order_seq - b.order_seq);
+      // 원하는 순서대로 정렬 (어드민과 동일)
+      const desiredOrder = ['학과', '게시판', '아카이빙', '프린트룸', '기타'];
+      const sortedMains = mains.sort((a, b) => {
+        const aIndex = desiredOrder.indexOf(a.title);
+        const bIndex = desiredOrder.indexOf(b.title);
+        
+        // 원하는 순서에 없는 메뉴는 맨 뒤로
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        
+        return aIndex - bIndex;
+      });
 
-      setMainMenus(mains);
+      setMainMenus(sortedMains);
       setSubMenus(subMenuGroups);
     } catch (error) {
       console.error('Error:', error);

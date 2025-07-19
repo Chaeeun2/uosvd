@@ -5,10 +5,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/assets/favicon-D_FTd0f0.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UOSVD Admin</title>
-    <meta name="description" content="UOSVD Admin Dashboard" />
+    <title>UOSVD 관리자페이지</title>
+    <meta name="description" content="UOSVD 관리자 페이지입니다." />
     <script>
+        // 초기 리다이렉트: 빈 해시나 루트 해시일 때 로그인 페이지로
         if (location.hash === '' || location.hash === '#/' || location.hash === '#') {
+            location.replace(location.pathname + '#/login');
+        }
+        // 중복 해시 제거 (예: #/admin#/admin)
+        if (location.hash.includes('#/admin')) {
+            location.replace(location.pathname + '#/');
+        }
+        // 잘못된 경로 정리 (예: #/admin/login -> #/login)
+        if (location.hash === '#/admin/login') {
             location.replace(location.pathname + '#/login');
         }
     </script>

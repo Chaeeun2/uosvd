@@ -7,24 +7,32 @@
   width: 200px;
   background-color: white;
   color: black;
-  padding: 10px;
+  padding: 0;
   position: fixed;
   height: 100%;
   border-right: 1px solid #eaeaea;
+  display: flex;
+  flex-direction: column;
 }
 
 .admin-sidebar h2 {
-  padding: 0px 5px 10px 5px;
+  padding: 10px 15px;
   color: black;
   font-size: 1.25em;
   font-weight: 600;
   border-bottom: 1px solid #eaeaea;
+  margin: 0;
+}
+
+.admin-sidebar nav {
+  flex: 1;
+  padding: 10px;
 }
 
 .admin-sidebar nav ul {
   list-style: none;
   padding: 0;
-  margin-top: 10px;
+  margin: 0;
 }
 
 .admin-sidebar nav li a {

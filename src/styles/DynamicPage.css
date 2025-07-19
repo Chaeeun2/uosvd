@@ -6,7 +6,7 @@
 
 .page-title {
   font-size: 2rem;
-  color: #333;
+  color: black;
   font-weight: 700;
   padding-left: 8px;
   border-bottom: 2px solid black;
@@ -22,7 +22,7 @@
 
 .content-item h2 {
   font-size: 1.1rem;
-  color: #333;
+  color: black;
   flex: 1;
   border-right: 2px solid black;
   min-width: 170px;

@@ -2,7 +2,8 @@
 import { useEffect, useState, useRef } from 'react';
 import Layout from '../components/Layout';
 import '../styles/Home.css';
-import { supabase } from '../lib/supabase';
+import { getAllDocuments } from '../lib/firebaseFirestore';
+import { incrementVisitorCount } from '../lib/visitorStats';
 
 export default function Home() {
   const [displayText, setDisplayText] = useState('');
@@ -16,9 +17,12 @@ export default function Home() {
   
   const [loading, setLoading] = useState(true);
   
-  // 컴포넌트 마운트 시 타이핑 시작
+  // 컴포넌트 마운트 시 타이핑 시작 및 방문자 카운트
   useEffect(() => {
     startTypingEffect();
+    
+    // 방문자 카운트 증가
+    incrementVisitorCount();
     
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -57,37 +61,32 @@ export default function Home() {
   async function fetchMenus() {
     setLoading(true);
     try {
-      const { data: menuData, error } = await supabase
-        .from('menus')
-        .select('*')
-        .order('order_seq');
+      const { data: menuData, error } = await getAllDocuments('menus', {
+        orderBy: [{ field: 'orderSeq', direction: 'asc' }]
+      });
       
       if (error) {
-        console.error('Error fetching menus:', error);
+        console.error('메뉴 조회 오류:', error);
         return;
       }
 
-      const mains = menuData.filter(menu => !menu.parent_id);
-      const subs = menuData.filter(menu => menu.parent_id);
+      const mains = menuData.filter(menu => !menu.parentId);
+      const subs = menuData.filter(menu => menu.parentId);
       
       const subMenuGroups = {};
       subs.forEach(menu => {
-        if (!subMenuGroups[menu.parent_id]) {
-          subMenuGroups[menu.parent_id] = [];
+        if (!subMenuGroups[menu.parentId]) {
+          subMenuGroups[menu.parentId] = [];
         }
-        subMenuGroups[menu.parent_id].push(menu);
+        subMenuGroups[menu.parentId].push(menu);
       });
 
-      Object.values(subMenuGroups).forEach(group => {
-        group.sort((a, b) => a.order_seq - b.order_seq);
-      });
-
-      mains.sort((a, b) => a.order_seq - b.order_seq);
+      // 이미 정렬된 데이터 사용
 
       setMainMenus(mains);
       setSubMenus(subMenuGroups);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('오류:', error);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { getAllDocuments, getDocument } from '../lib/firebaseFirestore';
 import Layout from '../components/Layout';
 import 'react-quill/dist/quill.snow.css';
 import '../styles/Layout.css';
@@ -20,15 +20,14 @@ const NoticeBoardDetail = () => {
 
   const fetchMenuTitle = async () => {
     try {
-      const { data, error } = await supabase
-        .from('menus')
-        .select('title')
-        .eq('slug', 'notices')
-        .single();
+      const { data, error } = await getAllDocuments('menus', {
+        where: [{ field: 'slug', operator: '==', value: 'notices' }],
+        limit: 1
+      });
 
       if (error) throw error;
-      if (data) {
-        setMenuTitle(data.title);
+      if (data && data.length > 0) {
+        setMenuTitle(data[0].title);
       }
     } catch (error) {
       console.error('메뉴 정보 로딩 실패:', error);
@@ -37,11 +36,7 @@ const NoticeBoardDetail = () => {
 
   const fetchNotice = async () => {
     try {
-      const { data, error } = await supabase
-        .from('notices')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data, error } = await getDocument('notices', id);
 
       if (error) throw error;
       setNotice(data);
@@ -53,6 +48,7 @@ const NoticeBoardDetail = () => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
@@ -89,7 +85,7 @@ const NoticeBoardDetail = () => {
     return (
       <Layout>
         <h1 className="page-title">{menuTitle}</h1>
-        {/* No loading-placeholder */}
+        <div className="loading">로딩 중...</div>
       </Layout>
     );
   }
@@ -110,14 +106,14 @@ const NoticeBoardDetail = () => {
         <h2>{notice.title}</h2>
         
         <div className="notice-meta">
-          <p><span>작성일</span>{formatDate(notice.created_at)}</p>
+          <p><span>작성일</span>{formatDate(notice.createdAt)}</p>
           <p><span>조회수</span>{notice.views || 0}</p>
         </div>
 
         {/* 이미지 배열이 있으면 본문 위에 모두 렌더링 */}
-        {Array.isArray(notice.image_urls) && notice.image_urls.length > 0 && (
+        {Array.isArray(notice.imageUrls) && notice.imageUrls.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            {notice.image_urls.map((url, idx) => (
+            {notice.imageUrls.map((url, idx) => (
               <img
                 key={idx}
                 src={url}

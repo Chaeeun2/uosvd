@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
-import { supabase } from '../../lib/supabase';
+import { getAllDocuments, addDocument, updateDocument, deleteDocument, getDocument } from '../../lib/firebaseFirestore';
+import { uploadToR2, deleteFromR2 } from '../../lib/cloudflareR2';
 import AdminLayout from '../../components/AdminLayout';
 import Modal from '../../components/Modal';
 import '../../styles/admin.css';
@@ -24,21 +25,21 @@ function MyEditorComponent({ content, setContent }) {
         alert('이미지 크기는 5MB 이하여야 합니다.');
         continue;
       }
-      const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
-      const { data, error } = await supabase.storage
-        .from('notice-files')
-        .upload(fileName, file);
-      if (error) {
-        alert('이미지 업로드 실패: ' + error.message);
-        continue;
-      }
-      const { data: publicData } = supabase.storage.from('notice-files').getPublicUrl(fileName);
-      const publicUrl = publicData?.publicUrl;
-      if (publicUrl && typeof publicUrl === 'string') {
+      try {
+        const fileName = `notice-images/${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
+        const { url, error } = await uploadToR2(file, fileName);
+        
+        if (error) {
+          alert('이미지 업로드 실패: ' + error);
+          continue;
+        }
+        
         // 에디터에 이미지 삽입
         if (window.tinymce && window.tinymce.activeEditor) {
-          window.tinymce.activeEditor.insertContent(`<img src="${publicUrl}" style="max-width:100%;" />`);
+          window.tinymce.activeEditor.insertContent(`<img src="${url}" style="max-width:100%;" />`);
         }
+      } catch (error) {
+        alert('이미지 업로드 실패: ' + error.message);
       }
     }
     // 파일 input 초기화
@@ -139,50 +140,46 @@ const NoticeManager = () => {
   const [imageUrls, setImageUrls] = useState([]);
 
   useEffect(() => {
-    checkAuth();
     fetchNotices();
   }, []);
 
-  const checkAuth = async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error || !session) {
-      console.error('인증 오류:', error);
-      alert('로그인이 필요합니다.');
-      return false;
-    }
-    return true;
-  };
-
   const fetchNotices = async () => {
     try {
-      let query = supabase
-        .from('notices')
-        .select('*', { count: 'exact' });
-
-      // 중요 공지사항 필터 적용
-      if (showImportantOnly) {
-        query = query.eq('is_important', true);
-      }
-
-      // Get total count first
-      const { count, error: countError } = await query;
-
-      if (countError) {
-        throw countError;
-      }
-
-      setTotalCount(count);
-      setTotalPages(Math.ceil(count / itemsPerPage));
-
-      // Then get paginated data
-      const { data, error } = await query
-        .order('created_at', { ascending: false })
-        .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
+      // 모든 공지사항을 가져온 후 클라이언트에서 필터링 (임시 해결책)
+      const { data, error } = await getAllDocuments('notices', {
+        orderBy: [{ field: 'createdAt', direction: 'desc' }]
+      });
 
       if (error) {
         throw error;
       }
-      setNotices(data || []);
+
+      // 클라이언트에서 필터링
+      let filteredData = data || [];
+      console.log('전체 공지사항 데이터:', filteredData);
+      console.log('중요 공지 필터 상태:', showImportantOnly);
+      
+      if (showImportantOnly) {
+        filteredData = filteredData.filter(notice => {
+          console.log('공지 ID:', notice.id, 'isImportant 값:', notice.isImportant, '타입:', typeof notice.isImportant);
+          // 여러 가능한 필드명 확인
+          const isImportant = notice.isImportant || notice.is_important || false;
+          console.log('최종 isImportant 값:', isImportant);
+          return isImportant === true;
+        });
+        console.log('필터링된 중요 공지:', filteredData);
+      }
+
+      // 페이지네이션 적용
+      const totalCount = filteredData.length;
+      const totalPages = Math.ceil(totalCount / itemsPerPage);
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+
+      setTotalCount(totalCount);
+      setTotalPages(totalPages);
+      setNotices(paginatedData);
     } catch (error) {
       console.error('공지사항 로딩 실패:', error);
       alert('공지사항을 불러오는데 실패했습니다.');
@@ -193,6 +190,11 @@ const NoticeManager = () => {
   useEffect(() => {
     fetchNotices();
   }, [currentPage, showImportantOnly]);
+
+  // 필터 변경 시 첫 페이지로 이동
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [showImportantOnly]);
 
   const handleFileUpload = async (uploadFiles) => {
     try {
@@ -223,35 +225,18 @@ const NoticeManager = () => {
         console.log('업로드할 파일 이름:', fileName);
 
         // 파일 업로드
-        const { data, error: uploadError } = await supabase.storage
-          .from('notice-files')
-          .upload(fileName, file);
+        const { url, error: uploadError } = await uploadToR2(file, `notice-files/${fileName}`);
 
         if (uploadError) {
           console.error('Storage upload error:', uploadError);
-          if (uploadError.message.includes('bucket')) {
-            alert('스토리지 버킷이 설정되지 않았습니다. 관리자에게 문의해주세요.');
-            return;
-          }
-          alert(`${file.name} 업로드 실패: ${uploadError.message}`);
-          continue;
-        }
-
-        // 파일 URL 가져오기
-        const { data: { publicUrl }, error: urlError } = supabase.storage
-          .from('notice-files')
-          .getPublicUrl(fileName);
-
-        if (urlError) {
-          console.error('Get public URL error:', urlError);
-          alert(`${file.name} URL 가져오기 실패: ${urlError.message}`);
+          alert(`${file.name} 업로드 실패: ${uploadError}`);
           continue;
         }
 
         // 파일 정보 저장 (원본 파일 이름 유지)
         setFiles(prev => [...prev, {
           name: file.name, // 사용자에게 보여줄 원본 파일 이름
-          url: publicUrl,
+          url: url,
           size: file.size,
           type: file.type
         }]);
@@ -275,18 +260,19 @@ const NoticeManager = () => {
         alert('이미지 크기는 5MB 이하여야 합니다.');
         continue;
       }
-      const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
-      const { data, error } = await supabase.storage
-        .from('notice-files')
-        .upload(fileName, file);
-      if (error) {
+      
+      try {
+        const fileName = `notice-images/${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
+        const { url, error } = await uploadToR2(file, fileName);
+        
+        if (error) {
+          alert('이미지 업로드 실패: ' + error);
+          continue;
+        }
+        
+        urls.push(url);
+      } catch (error) {
         alert('이미지 업로드 실패: ' + error.message);
-        continue;
-      }
-      const { data: publicData } = supabase.storage.from('notice-files').getPublicUrl(fileName);
-      const publicUrl = publicData?.publicUrl;
-      if (publicUrl && typeof publicUrl === 'string') {
-        urls.push(publicUrl);
       }
     }
     setImageUrls(prev => [...prev, ...urls]);
@@ -304,29 +290,32 @@ const NoticeManager = () => {
       alert('이미지 크기는 5MB 이하여야 합니다.');
       return;
     }
-    const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
-    const { data, error } = await supabase.storage
-      .from('notice-files')
-      .upload(fileName, file);
-    if (error) {
+    
+    try {
+      const fileName = `notice-images/${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
+      const { url, error } = await uploadToR2(file, fileName);
+      
+      if (error) {
+        alert('이미지 업로드 실패: ' + error);
+        return;
+      }
+      
+      setImageUrls(prev => [...prev, url]);
+    } catch (error) {
       alert('이미지 업로드 실패: ' + error.message);
-      return;
-    }
-    const { data: publicData } = supabase.storage.from('notice-files').getPublicUrl(fileName);
-    const publicUrl = publicData?.publicUrl;
-    if (publicUrl && typeof publicUrl === 'string') {
-      setImageUrls(prev => [...prev, publicUrl]);
     }
   };
 
   const handleRemoveImage = async () => {
     if (imageUrls.length > 0) {
       for (const url of imageUrls) {
-        const matches = url.match(/public\/([^/]+)\/(.+)$/);
-        if (matches) {
-          const bucket = matches[1];
-          const path = matches[2];
-          await supabase.storage.from(bucket).remove([path]);
+        try {
+          // R2에서 이미지 삭제
+          const urlParts = url.split('/');
+          const fileName = urlParts[urlParts.length - 1];
+          await deleteFromR2(`notice-images/${fileName}`);
+        } catch (error) {
+          console.error('이미지 삭제 실패:', error);
         }
       }
     }
@@ -347,30 +336,41 @@ const NoticeManager = () => {
         title: title.trim(),
         content: content.trim(),
         files: files,
-        is_important: isImportant,
-        image_urls: imageUrls
+        isImportant: isImportant,
+        imageUrls: imageUrls,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
+      console.log('저장할 공지 데이터:', noticeData);
+
       if (editingNoticeId) {
-        const { error: updateError } = await supabase
-          .from('notices')
-          .update({
-            ...noticeData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingNoticeId);
+        console.log('수정할 공지 ID:', editingNoticeId);
+        
+        // 먼저 문서가 존재하는지 확인
+        const { data: existingNotice, error: checkError } = await getDocument('notices', editingNoticeId);
+        
+        if (checkError || !existingNotice) {
+          console.error('수정할 공지사항을 찾을 수 없습니다:', editingNoticeId);
+          alert('수정할 공지사항을 찾을 수 없습니다. 새로 작성해주세요.');
+          setEditingNoticeId(null);
+          return;
+        }
 
-        if (updateError) throw updateError;
+        const { error } = await updateDocument('notices', editingNoticeId, {
+          title: noticeData.title,
+          content: noticeData.content,
+          files: noticeData.files,
+          imageUrls: noticeData.imageUrls,
+          isImportant: noticeData.isImportant,
+          updatedAt: new Date().toISOString()
+        });
+
+        if (error) throw error;
       } else {
-        const { error: insertError } = await supabase
-          .from('notices')
-          .insert([{
-            ...noticeData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }]);
+        const { error } = await addDocument('notices', noticeData);
 
-        if (insertError) throw insertError;
+        if (error) throw error;
       }
 
       closeModal(true);
@@ -392,21 +392,23 @@ const NoticeManager = () => {
       if (noticeToDelete && Array.isArray(noticeToDelete.files)) {
         for (const file of noticeToDelete.files) {
           if (file.url) {
-            // 예: https://xxxx.supabase.co/storage/v1/object/public/notice-files/파일명
-            const matches = file.url.match(/public\/([^/]+)\/(.+)$/);
-            if (matches) {
-              const bucket = matches[1];
-              const path = matches[2];
-              await supabase.storage.from(bucket).remove([path]);
+            try {
+              // R2에서 파일 삭제
+              const urlParts = file.url.split('/');
+              const fileName = urlParts[urlParts.length - 1];
+              const deleteResult = await deleteFromR2(`notice-files/${fileName}`);
+              if (!deleteResult.success) {
+                console.warn('파일 삭제 실패:', deleteResult.error);
+              }
+            } catch (error) {
+              console.error('파일 삭제 실패:', error);
             }
           }
         }
       }
+      
       // 2. DB에서 공지사항 삭제
-      const { error } = await supabase
-        .from('notices')
-        .delete()
-        .eq('id', id);
+      const { error } = await deleteDocument('notices', id);
 
       if (error) throw error;
       fetchNotices();
@@ -418,12 +420,13 @@ const NoticeManager = () => {
 
   const openModal = (notice = null) => {
     if (notice) {
+      console.log('수정할 공지사항:', notice);
       setEditingNoticeId(notice.id);
       setTitle(notice.title);
       setContent(notice.content || '');
       setFiles(notice.files || []);
-      setIsImportant(notice.is_important || false);
-      setImageUrls(notice.image_urls || []);
+      setIsImportant(notice.isImportant || notice.is_important || false);
+      setImageUrls(notice.imageUrls || notice.image_urls || []);
     } else {
       setEditingNoticeId(null);
       setTitle('');
@@ -483,7 +486,6 @@ const NoticeManager = () => {
                     checked={showImportantOnly}
                     onChange={(e) => {
                       setShowImportantOnly(e.target.checked);
-                      setCurrentPage(1); // 필터 변경시 첫 페이지로 이동
                     }}
                   />
                   <span className="checkmark"></span>
@@ -498,16 +500,16 @@ const NoticeManager = () => {
             <div className="admin-content-list">
               {notices.length > 0 ? (
                 <>
-                  {notices.map(notice => (
-                    <div key={notice.id} className="admin-notice-item">
+                  {notices.map((notice, index) => (
+                    <div key={`${notice.id}-${index}`} className="admin-notice-item">
                       <div className="admin-notice-info">
                         <h3>
-                          {notice.is_important && <span className="admin-important-badge">중요</span>}
+                          {(notice.isImportant || notice.is_important) && <span className="admin-important-badge">중요</span>}
                           {notice.title}
                         </h3>
                         <div className="admin-notice-meta">
-                          <span>작성일: {formatDate(notice.created_at)}</span>
-                          <span>조회수: {notice.views}</span>
+                          <span>작성일: {formatDate(notice.createdAt || notice.created_at)}</span>
+                          <span>조회수: {notice.views || 0}</span>
                         </div>
                       </div>
                       <div className="admin-notice-actions">
@@ -608,12 +610,16 @@ const NoticeManager = () => {
                             <img src={url} alt="미리보기" style={{ maxWidth: 120, maxHeight: 120 }} />
                             <button
                               onClick={async () => {
-                                // storage에서 이미지 삭제
-                                const matches = url.match(/public\/([^/]+)\/(.+)$/);
-                                if (matches) {
-                                  const bucket = matches[1];
-                                  const path = matches[2];
-                                  await supabase.storage.from(bucket).remove([path]);
+                                try {
+                                  // R2에서 이미지 삭제
+                                  const urlParts = url.split('/');
+                                  const fileName = urlParts[urlParts.length - 1];
+                                  const deleteResult = await deleteFromR2(`notice-images/${fileName}`);
+                                  if (!deleteResult.success) {
+                                    console.warn('이미지 삭제 실패:', deleteResult.error);
+                                  }
+                                } catch (error) {
+                                  console.error('이미지 삭제 실패:', error);
                                 }
                                 setImageUrls(imageUrls.filter((_, i) => i !== idx));
                               }}
@@ -654,14 +660,18 @@ const NoticeManager = () => {
                               {file.name}
                               <button
                                 onClick={async () => {
-                                  // storage에서 파일 삭제
-                                  if (file.url) {
-                                    const matches = file.url.match(/public\/([^/]+)\/(.+)$/);
-                                    if (matches) {
-                                      const bucket = matches[1];
-                                      const path = matches[2];
-                                      await supabase.storage.from(bucket).remove([path]);
+                                  try {
+                                    // R2에서 파일 삭제
+                                    if (file.url) {
+                                      const urlParts = file.url.split('/');
+                                      const fileName = urlParts[urlParts.length - 1];
+                                      const deleteResult = await deleteFromR2(`notice-files/${fileName}`);
+                                      if (!deleteResult.success) {
+                                        console.warn('파일 삭제 실패:', deleteResult.error);
+                                      }
                                     }
+                                  } catch (error) {
+                                    console.error('파일 삭제 실패:', error);
                                   }
                                   setFiles(files.filter((_, i) => i !== index));
                                 }}

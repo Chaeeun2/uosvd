@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { getAllDocuments } from '../../lib/firebaseFirestore';
+import { getVisitorStats } from '../../lib/visitorStats';
 import AdminLayout from '../../components/AdminLayout';
 
 export default function Dashboard() {
@@ -25,59 +26,29 @@ export default function Dashboard() {
     setLoading(true);
     try {
       // 메뉴 개수
-      const { count: menuCount, error: menuError } = await supabase
-        .from('menus')
-        .select('*', { count: 'exact', head: true });
-      
+      const { data: menus, error: menuError } = await getAllDocuments('menus');
       if (menuError) throw menuError;
       
       // 콘텐츠 개수
-      const { count: contentCount, error: contentError } = await supabase
-        .from('contents')
-        .select('*', { count: 'exact', head: true });
-      
+      const { data: contents, error: contentError } = await getAllDocuments('contents');
       if (contentError) throw contentError;
       
       // 공지사항 개수
-      const { count: noticeCount, error: noticeError } = await supabase
-        .from('notices')
-        .select('*', { count: 'exact', head: true });
-      
+      const { data: notices, error: noticeError } = await getAllDocuments('notices');
       if (noticeError) throw noticeError;
 
-      // 오늘 날짜와 이번달 첫날
-      const today = new Date().toISOString().split('T')[0];
-      const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-        .toISOString().split('T')[0];
-
-      // 오늘 방문자 수
-      const { count: todayVisits, error: todayVisitError } = await supabase
-        .from('visits')
-        .select('*', { count: 'exact' })
-        .eq('visit_date', today);
-      
-      if (todayVisitError) throw todayVisitError;
-
-      // 이번달 방문자 수
-      const { data: monthlyVisits, error: monthlyVisitsError } = await supabase
-        .from('visits')
-        .select('count')
-        .gte('visit_date', firstDayOfMonth)
-        .lte('visit_date', today);
-
-      if (monthlyVisitsError) throw monthlyVisitsError;
-
-      const monthlyVisitCount = monthlyVisits?.reduce((sum, visit) => sum + visit.count, 0) || 0;
+      // 방문자 통계 조회
+      const visitorStats = await getVisitorStats();
       
       setStats({
-        menuCount,
-        contentCount,
-        noticeCount,
-        todayVisits: todayVisits || 0,
-        monthlyVisits: monthlyVisitCount
+        menuCount: menus.length,
+        contentCount: contents.length,
+        noticeCount: notices.length,
+        todayVisits: visitorStats.todayVisits,
+        monthlyVisits: visitorStats.monthlyVisits
       });
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error('통계 조회 오류:', error);
     } finally {
       setLoading(false);
     }
@@ -86,21 +57,19 @@ export default function Dashboard() {
   async function fetchRecentData() {
     try {
       // 최근 콘텐츠 5개
-      const { data: contents, error: contentsError } = await supabase
-        .from('contents')
-        .select('id, title, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5);
+      const { data: contents, error: contentsError } = await getAllDocuments('contents', {
+        orderBy: [{ field: 'createdAt', direction: 'desc' }],
+        limit: 5
+      });
 
       if (contentsError) throw contentsError;
       setRecentContents(contents || []);
 
       // 최근 공지사항 5개
-      const { data: notices, error: noticesError } = await supabase
-        .from('notices')
-        .select('id, title, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5);
+      const { data: notices, error: noticesError } = await getAllDocuments('notices', {
+        orderBy: [{ field: 'createdAt', direction: 'desc' }],
+        limit: 5
+      });
 
       if (noticesError) throw noticesError;
       setRecentNotices(notices || []);
@@ -113,6 +82,7 @@ export default function Dashboard() {
   const currentMonth = new Date().toLocaleString('ko-KR', { month: 'long' });
 
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('ko-KR', {
       month: '2-digit',
@@ -127,7 +97,7 @@ export default function Dashboard() {
         <div className="admin-content-layout">
           <div className="admin-content-main">
             {loading ? (
-              <></>
+              <div className="admin-loading">로딩 중...</div>
             ) : (
               <>
                 {/* 통계 섹션 */}
@@ -166,7 +136,7 @@ export default function Dashboard() {
                     <div className="admin-content-header">
                       <h3 className="admin-content-title">최근 추가된 콘텐츠</h3>
                       <button 
-                        onClick={() => navigate('/admin/content')} 
+                        onClick={() => navigate('/content')} 
                         className="admin-button"
                       >
                         콘텐츠 관리
@@ -177,7 +147,7 @@ export default function Dashboard() {
                         recentContents.map(content => (
                           <div key={content.id} className="admin-recent-item">
                             <span className="admin-recent-title">{content.title}</span>
-                            <span className="admin-recent-date">{formatDate(content.created_at)}</span>
+                            <span className="admin-recent-date">{formatDate(content.createdAt)}</span>
                           </div>
                         ))
                       ) : (
@@ -191,7 +161,7 @@ export default function Dashboard() {
                     <div className="admin-content-header">
                       <h3 className="admin-content-title">최근 공지사항</h3>
                       <button 
-                        onClick={() => navigate('/admin/notice')} 
+                        onClick={() => navigate('/notice')} 
                         className="admin-button"
                       >
                         공지사항 관리
@@ -202,7 +172,7 @@ export default function Dashboard() {
                         recentNotices.map(notice => (
                           <div key={notice.id} className="admin-recent-item">
                             <span className="admin-recent-title">{notice.title}</span>
-                            <span className="admin-recent-date">{formatDate(notice.created_at)}</span>
+                            <span className="admin-recent-date">{formatDate(notice.createdAt)}</span>
                           </div>
                         ))
                       ) : (

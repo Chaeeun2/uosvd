@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { supabase } from '../../lib/supabase';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { getAllDocuments, addDocument, updateDocument, deleteDocument } from '../../lib/firebaseFirestore';
+import { uploadImage, deleteFile } from '../../lib/fileManager';
 import Modal from '../../components/Modal';
 import AdminLayout from '../../components/AdminLayout';
 import '../../styles/admin.css';
@@ -24,21 +25,44 @@ const ContentManager = () => {
   // 메뉴 데이터 가져오기
   const fetchMenus = async () => {
     try {
+      console.log('=== 메뉴 데이터 가져오기 시작 ===');
+      
       // 모든 메뉴 가져오기
-      const { data: allMenus, error } = await supabase
-        .from('menus')
-        .select('*')
-        .order('order_seq');
+      const { data: allMenus, error } = await getAllDocuments('menus', {
+        orderBy: [{ field: 'orderSeq', direction: 'asc' }]
+      });
 
       if (error) throw error;
 
+      console.log('Firebase에서 가져온 모든 메뉴:', allMenus);
+
       // 부모 메뉴와 자식 메뉴 분리
-      const parents = allMenus.filter(menu => !menu.parent_id);
-      const children = allMenus.filter(menu => menu.parent_id);
+      const parents = allMenus.filter(menu => !menu.parentId);
+      const children = allMenus.filter(menu => menu.parentId);
+
+      console.log('부모 메뉴 (parentId가 없는 것):', parents);
+      console.log('자식 메뉴 (parentId가 있는 것):', children);
 
       // 정렬된 메뉴 리스트 생성
       const formattedMenus = [];
-      parents.forEach(parent => {
+      
+      // 원하는 순서로 부모 메뉴 정렬
+      const desiredOrder = ['학과', '아카이빙', '프린트룸', '기타'];
+      const sortedParents = parents.sort((a, b) => {
+        const aIndex = desiredOrder.indexOf(a.title);
+        const bIndex = desiredOrder.indexOf(b.title);
+        return aIndex - bIndex;
+      });
+      
+      sortedParents.forEach(parent => {
+        console.log(`부모 메뉴 "${parent.title}" 처리 중...`);
+        
+        // 게시판 메뉴는 숨김
+        if (parent.title === '게시판') {
+          console.log(`게시판 메뉴 숨김 처리`);
+          return;
+        }
+        
         // 부모 메뉴는 선택 불가능하게 처리
         formattedMenus.push({
           ...parent,
@@ -48,10 +72,18 @@ const ContentManager = () => {
         
         // 해당 부모의 자식 메뉴들 추가
         const childMenus = children
-          .filter(child => child.parent_id === parent.id)
-          .sort((a, b) => a.order_seq - b.order_seq);
+          .filter(child => child.parentId === parent.id)
+          .sort((a, b) => (a.orderSeq || 0) - (b.orderSeq || 0));
           
+        console.log(`부모 "${parent.title}"의 자식 메뉴들:`, childMenus);
+        
         childMenus.forEach(child => {
+          // 공지 메뉴는 숨김
+          if (child.title === '공지') {
+            console.log(`공지 메뉴 숨김 처리`);
+            return;
+          }
+          
           formattedMenus.push({
             ...child,
             title: child.title,
@@ -60,16 +92,22 @@ const ContentManager = () => {
         });
       });
 
+      console.log('최종 포맷된 메뉴:', formattedMenus);
       setMenus(formattedMenus);
       
       // 첫 번째 선택 가능한 메뉴를 기본값으로 설정
       if (formattedMenus.length > 0 && !selectedMenuId) {
         const firstSelectableMenu = formattedMenus.find(menu => !menu.disabled);
         if (firstSelectableMenu) {
+          console.log('기본 메뉴 설정:', firstSelectableMenu.title, firstSelectableMenu.id);
           setSelectedMenuId(firstSelectableMenu.id);
           setSelectedFilterMenuId(firstSelectableMenu.id);
+        } else {
+          console.log('선택 가능한 메뉴가 없습니다!');
         }
       }
+      
+      console.log('=== 메뉴 데이터 가져오기 완료 ===');
     } catch (error) {
       console.error('메뉴 로딩 실패:', error);
     }
@@ -86,14 +124,21 @@ const ContentManager = () => {
   // 콘텐츠 데이터 가져오기
   const fetchContents = async (menuId = selectedFilterMenuId) => {
     try {
-      const { data, error } = await supabase
-        .from('contents')
-        .select('*')
-        .eq('menu_id', menuId)
-        .order('order_seq', { ascending: true });
+      console.log('=== 콘텐츠 로딩 시작 ===');
+      console.log('요청한 메뉴 ID:', menuId);
+      console.log('현재 selectedFilterMenuId:', selectedFilterMenuId);
+      
+      const { data, error } = await getAllDocuments('contents', {
+        where: [{ field: 'menuId', operator: '==', value: menuId }],
+        orderBy: [{ field: 'orderSeq', direction: 'asc' }]
+      });
 
       if (error) throw error;
+      console.log('Firebase에서 가져온 콘텐츠:', data);
+      console.log('콘텐츠 개수:', data ? data.length : 0);
       setContents(data || []);
+      
+      console.log('=== 콘텐츠 로딩 완료 ===');
     } catch (error) {
       console.error('콘텐츠 로딩 실패:', error);
     }
@@ -112,23 +157,17 @@ const ContentManager = () => {
     if (!window.confirm(confirmMessage)) return;
 
     try {
-      // 1. storage 이미지 삭제 (image_url이 있을 때만)
-      if (contentToDelete.image_url) {
-        // 예: https://xxxx.supabase.co/storage/v1/object/public/content-images/파일명
-        const matches = contentToDelete.image_url.match(/public\/([^/]+)\/(.+)$/);
-        if (matches) {
-          const bucket = matches[1];
-          const path = matches[2];
-          await supabase.storage.from(bucket).remove([path]);
-        }
+      // 1. storage 이미지 삭제 (imageUrl이 있을 때만)
+      if (contentToDelete.imageUrl) {
+        // R2에서 이미지 삭제
+        const imagePath = contentToDelete.imageUrl.split('/').slice(-2).join('/'); // content-images/filename.jpg
+        await deleteFile(imagePath);
       }
+      
       // 2. DB에서 콘텐츠 삭제
-      const { error } = await supabase
-        .from('contents')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      const { success, error } = await deleteDocument('contents', id);
+      if (!success) throw error;
+      
       fetchContents();
     } catch (error) {
       console.error('콘텐츠 삭제 실패:', error);
@@ -153,8 +192,8 @@ const ContentManager = () => {
       setEditingContentId(contentToEdit.id);
       setTitle(contentToEdit.title);
       setContent(contentToEdit.content || '');
-      setSelectedMenuId(contentToEdit.menu_id);
-      setImageUrl(contentToEdit.image_url || '');
+      setSelectedMenuId(contentToEdit.menuId);
+      setImageUrl(contentToEdit.imageUrl || '');
     } else {
       setEditingContentId(null);
       setTitle('');
@@ -198,61 +237,37 @@ const ContentManager = () => {
         alert('내용을 입력해주세요.');
         return;
       }
-
-      // 현재 메뉴의 마지막 order_seq 구하기
-      let nextOrderSeq = 1;
-      if (!editingContentId) {
-        const { data: maxOrder, error: maxOrderError } = await supabase
-          .from('contents')
-          .select('order_seq')
-          .eq('menu_id', selectedMenuId)
-          .order('order_seq', { ascending: false })
-          .limit(1)
-          .single();
-        if (!maxOrderError && maxOrder && maxOrder.order_seq) {
-          nextOrderSeq = maxOrder.order_seq + 1;
-        }
+      if (!selectedMenuId) {
+        alert('메뉴를 선택해주세요.');
+        return;
       }
 
       const contentData = {
         title: title.trim(),
         content: content.trim(),
-        menu_id: selectedMenuId,
-        image_url: imageUrl || null
+        menuId: selectedMenuId,
+        imageUrl: imageUrl,
+        orderSeq: editingContentId ? contents.find(c => c.id === editingContentId)?.orderSeq || 0 : contents.length
       };
 
       if (editingContentId) {
-        const { error: updateError } = await supabase
-          .from('contents')
-          .update({
-            ...contentData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingContentId);
-
-        if (updateError) throw updateError;
+        // 수정
+        const { success, error } = await updateDocument('contents', editingContentId, contentData);
+        if (!success) throw error;
       } else {
-        const { error: insertError } = await supabase
-          .from('contents')
-          .insert([{
-            ...contentData,
-            order_seq: nextOrderSeq,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }]);
-
-        if (insertError) throw insertError;
+        // 새로 추가
+        const { id, error } = await addDocument('contents', contentData);
+        if (error) throw error;
       }
 
       closeModal(true);
-      fetchContents(selectedMenuId);
+      fetchContents();
     } catch (error) {
       console.error('콘텐츠 저장 실패:', error);
-      alert(`콘텐츠 저장에 실패했습니다: ${error.message || '알 수 없는 오류가 발생했습니다.'}`);
+      alert('콘텐츠 저장에 실패했습니다.');
     }
   };
 
-  // 콘텐츠 순서 변경 처리
   const handleDragEnd = async (result) => {
     if (!result.destination) return;
 
@@ -260,70 +275,59 @@ const ContentManager = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
+    setContents(items);
+
     // 순서 업데이트
-    const updatedItems = items.map((item, index) => ({
-      ...item,
-      order_seq: index + 1
-    }));
-
-    setContents(updatedItems);
-
-    // DB 업데이트
     try {
-      for (const item of updatedItems) {
-        const { error } = await supabase
-          .from('contents')
-          .update({ order_seq: item.order_seq })
-          .eq('id', item.id);
+      const updates = items.map((item, index) => ({
+        id: item.id,
+        data: { orderSeq: index }
+      }));
 
-        if (error) throw error;
+      for (const update of updates) {
+        await updateDocument('contents', update.id, update.data);
       }
     } catch (error) {
       console.error('순서 업데이트 실패:', error);
-      alert('순서 변경 저장에 실패했습니다.');
-      fetchContents(); // 실패 시 다시 로드
+      // 실패 시 원래 순서로 복원
+      fetchContents();
     }
   };
 
-  // HTML 태그 제거 함수
   const stripHtml = (html) => {
     const tmp = document.createElement('div');
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || '';
   };
 
-  // 콘텐츠 미리보기 텍스트 생성
   const getPreviewText = (content) => {
-    const plainText = stripHtml(content);
-    return plainText.length > 50 ? plainText.substring(0, 70) + '...' : plainText;
+    const text = stripHtml(content);
+    return text.length > 100 ? text.substring(0, 100) + '...' : text;
   };
 
   const handleImageUpload = async (file) => {
-    if (!file) return;
-    const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!allowedExts.includes(ext)) {
-      alert('허용된 이미지 형식이 아닙니다. (JPG, PNG, GIF, WEBP)');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('이미지 크기는 5MB 이하여야 합니다.');
-      return;
-    }
-    const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
-    const { data, error } = await supabase.storage
-      .from('content-images')
-      .upload(fileName, file);
-    if (error) {
-      alert('이미지 업로드 실패: ' + error.message);
-      return;
-    }
-    const { data: publicData } = supabase.storage.from('content-images').getPublicUrl(fileName);
-    const publicUrl = publicData?.publicUrl;
-    if (publicUrl && typeof publicUrl === 'string') {
-      setImageUrl(publicUrl);
+    try {
+      const path = `content-images/${Date.now()}_${file.name}`;
+      const result = await uploadImage(file, path);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setImageUrl(result.url);
+      return result.url;
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다.');
+      return null;
     }
   };
+
+  console.log('=== 렌더링 상태 ===');
+  console.log('menus:', menus);
+  console.log('contents:', contents);
+  console.log('selectedFilterMenuId:', selectedFilterMenuId);
+  console.log('selectedMenuId:', selectedMenuId);
 
   return (
     <AdminLayout>
@@ -338,7 +342,8 @@ const ContentManager = () => {
                   key={menu.id}
                   className={`admin-menu-item ${menu.disabled ? 'parent' : 'child'} ${selectedFilterMenuId === menu.id ? 'active' : ''}`}
                   onClick={() => {
-                    if (!menu.disabled && menu.title !== '공지') {
+                    if (!menu.disabled) {
+                      console.log('메뉴 선택:', menu.title, menu.id);
                       setSelectedFilterMenuId(menu.id);
                       fetchContents(menu.id);
                     }
@@ -463,12 +468,8 @@ const ContentManager = () => {
                         <img src={imageUrl} alt="미리보기" style={{ maxWidth: 120, maxHeight: 120 }} />
                         <button
                           onClick={async () => {
-                            const matches = imageUrl.match(/public\/([^/]+)\/(.+)$/);
-                            if (matches) {
-                              const bucket = matches[1];
-                              const path = matches[2];
-                              await supabase.storage.from(bucket).remove([path]);
-                            }
+                            const imagePath = imageUrl.split('/').slice(-2).join('/');
+                            await deleteFile(imagePath);
                             setImageUrl('');
                           }}
                           className="admin-button"
