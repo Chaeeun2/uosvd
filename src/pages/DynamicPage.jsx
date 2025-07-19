@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getAllDocuments } from '../lib/firebaseFirestore';
 import Layout from '../components/Layout';
+import DOMPurify from 'dompurify';
 import '../styles/DynamicPage.css';
 
 export default function DynamicPage() {
@@ -100,6 +101,21 @@ export default function DynamicPage() {
     };
   }, [slug, parent]);
 
+  // HTML 콘텐츠를 안전하게 정제
+  const sanitizeHTML = (html) => {
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: [
+        'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
+        'a', 'img', 'div', 'span', 'hr'
+      ],
+      ALLOWED_ATTR: [
+        'href', 'src', 'alt', 'title', 'class', 'id', 'style', 'target', 'rel'
+      ],
+      ALLOW_DATA_ATTR: false
+    });
+  };
+
   // admin 경로는 렌더링하지 않음
   if (slug?.startsWith('admin')) {
     return null;
@@ -122,7 +138,7 @@ export default function DynamicPage() {
                   {item.imageUrl && (
                     <img src={item.imageUrl} alt={item.title} />
                   )}
-                  <div dangerouslySetInnerHTML={{ __html: item.content }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(item.content) }} />
                 </div>
               </div>
             </div>

@@ -1,14 +1,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 모든 사용자가 읽기 가능
-    match /{document=**} {
+    // 공개 읽기 가능한 컬렉션들
+    match /menus/{document} {
       allow read: if true;
+      allow write: if request.auth != null && isAdmin();
     }
     
-    // 인증된 사용자만 쓰기 가능
-    match /{document=**} {
-      allow write: if request.auth != null;
+    match /contents/{document} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    match /notices/{document} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // 관리자 전용 컬렉션들
+    match /admin/{document} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+    
+    // 방문자 통계
+    match /visitorStats/{document} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if true; // 방문자 카운트 증가를 위해
+    }
+    
+    // 관리자 권한 확인 함수
+    function isAdmin() {
+      return request.auth.token.email == resource.data.adminEmail || 
+             request.auth.token.email == get(/databases/$(database)/documents/admin/$(request.auth.uid)).data.email;
     }
   }
 } 

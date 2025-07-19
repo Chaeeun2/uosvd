@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getAllDocuments, getDocument } from '../lib/firebaseFirestore';
 import Layout from '../components/Layout';
+import DOMPurify from 'dompurify';
 import 'react-quill/dist/quill.snow.css';
 import '../styles/Layout.css';
 import '../styles/common.css';
@@ -81,6 +82,21 @@ const NoticeBoardDetail = () => {
     navigate('/notices');
   };
 
+  // HTML 콘텐츠를 안전하게 정제
+  const sanitizeHTML = (html) => {
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: [
+        'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
+        'a', 'img', 'div', 'span', 'hr'
+      ],
+      ALLOWED_ATTR: [
+        'href', 'src', 'alt', 'title', 'class', 'id', 'style', 'target', 'rel'
+      ],
+      ALLOW_DATA_ATTR: false
+    });
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -124,7 +140,7 @@ const NoticeBoardDetail = () => {
           </div>
         )}
 
-        <div className="notice-content" dangerouslySetInnerHTML={{ __html: notice.content }} />
+        <div className="notice-content" dangerouslySetInnerHTML={{ __html: sanitizeHTML(notice.content) }} />
 
         {notice.files && notice.files.length > 0 && (
           <div className="notice-files">
