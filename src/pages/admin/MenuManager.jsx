@@ -385,7 +385,7 @@ export default function MenuManager() {
                   id="parent"
                   value={editingMenu ? editingMenu.parent_id || '' : newMenu.parent_id || ''}
                   onChange={(e) => {
-                    const value = e.target.value ? parseInt(e.target.value) : null;
+                    const value = e.target.value || null;
                     editingMenu
                       ? setEditingMenu({ ...editingMenu, parent_id: value })
                       : setNewMenu({ ...newMenu, parent_id: value });
